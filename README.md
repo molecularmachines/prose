@@ -1,5 +1,5 @@
-# Evolutron
-Evolving Novel Protein Sequences through Language Model Sampling
+# ProSE
+**Pro**tein **S**equence **E**volver
 
 ## Install
 ```sh
