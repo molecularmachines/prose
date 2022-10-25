@@ -133,9 +133,15 @@ def main(argv):
 
     # write results to file
     OUTPUT_FILE = os.path.join(FLAGS.output, RESULTS_FILE)
+    RUN_CONFIG_FILE = os.path.join(FLAGS.output, CONFIG_FILE)
+
     with open(OUTPUT_FILE, "w") as f:
         json.dump(res_json, f)
     logging.info(f'results have been written to {OUTPUT_FILE}')
+
+    with open(RUN_CONFIG_FILE, "w") as f:
+        json.dump(config, f)
+    logging.info(f'config has been written to {CONFIG_FILE}')
 
 
 if __name__ == '__main__':
