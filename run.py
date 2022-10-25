@@ -1,59 +1,88 @@
 import os
 import json
+import esm
 from absl import app
 from absl import flags
 from absl import logging
 from tqdm import tqdm
+from time import gmtime, strftime
 
-from sample import VanillaSampler, MetropolisHastingsSampler
+from samplers import VanillaSampler, MetropolisHastingsSampler
 from biotite.sequence.io import fasta
 from omegafold.__main__ import main as fold
 from omegafold.__main__ import model
 
-# samplers
-samplers = {
-    "vanilla": VanillaSampler(),
-    "metropolis": MetropolisHastingsSampler()
-}
-sampler_names = list(samplers.keys())
+
+# constants
+RESULTS_FILE = "results.json"
+CONFIG_FILE = "config.json"
+N_STEPS_DEFAULT = 100
+K_DEFAULT = 1
+FOLD_EVERY_DEFAULT = 5
 
 # experiment program run arguments
 FLAGS = flags.FLAGS
 flags.DEFINE_string("input", None, "Path to fasta sequences file")
 flags.DEFINE_string("output", "out", "Path to output directory")
-flags.DEFINE_integer("n", 10,
-                     "Number of steps to run the sampler")
-flags.DEFINE_float("temp", 1.0,
-                    "Temperature of sampler")
-flags.DEFINE_integer("k", 1,
-                     "Number of sampling residues per step")
-flags.DEFINE_integer('fold_every', 10,
-                     'Number of steps between fold metric collection')
-flags.DEFINE_list("method", None,
-                  "Sampling method. Must be of: {sampler_names}")
+flags.DEFINE_string("config", CONFIG_FILE, "Path to config json file")
 
 # required arguments
 flags.mark_flag_as_required("input")
-flags.mark_flag_as_required("output")
 
-# constants
-RESULTS_FILE = "results.json"
+samplers = {
+    "vanilla": VanillaSampler,
+    "metropolis": MetropolisHastingsSampler
+}
+
+
+def init_config(config_file: str) -> dict:
+    # read config file
+    logging.info(f"reading config file: {config_file}")
+    config = json.load(open(config_file))
+
+    # validate required fields
+    req_fields = ["n_steps", "samplers"]
+    for field in req_fields:
+        assert field in config.keys(), f"Config file must contain {field}"
+
+    # store defaults to config
+    t = strftime('%Y-%m-%d-%H-%M-%S', gmtime())
+    config["name"] = config.get("name", t)
+    config["date"] = t
+    config["fold_every"] = config.get("fold_every", FOLD_EVERY_DEFAULT)
+    config["n_steps"] = config.get("n_steps", N_STEPS_DEFAULT)
+    config["k"] = config.get("k", K_DEFAULT)
+
+    return config
 
 
 def main(argv):
     del argv  # Unused.
 
+    # load ESM to memory
+    logging.info("loading ESM2")
+    esm_model, alphabet = esm.pretrained.esm2_t33_650M_UR50D()
+    logging.info("done loading")
+
+    # initialize config from file
+    config = init_config(FLAGS.config)
+
     # load omegafold to memory
     omegafold_model = model()
 
     # choose sampling methods
-    user_samplers = sampler_names if FLAGS.method is None else FLAGS.method
+    user_sampler_names = list(config.get("samplers").keys())
+    user_samplers = []
+    for sampler in user_sampler_names:
+        sampler_config = config["samplers"][sampler]
+        s = samplers[sampler](esm_model, alphabet, sampler_config)
+        user_samplers.append(s)
 
     # prepare output directory
     if not os.path.exists(FLAGS.output):
         os.makedirs(FLAGS.output)
 
-    # read fasta file
+    # read input fasta file
     fasta_file = fasta.FastaFile.read(FLAGS.input)
     fasta_sequences = fasta.get_sequences(fasta_file)
     sequences = list(fasta_sequences.values())
@@ -62,24 +91,24 @@ def main(argv):
 
     # run all samplers
     res_json = {"original_sequences": sequences}
-    for s in user_samplers:
-        logging.info(f"sampling with method: {s}")
-        sampler = samplers[s]
+    for idx, sampler in enumerate(user_samplers):
+        sampler_name = user_sampler_names[idx]
+        logging.info(f"sampling with method: {sampler_name}")
         res_sequences = []
         confidences = []
-        current_energy = None
 
         # sample n times from each sampler
-        for i in tqdm(range(FLAGS.n)):
+        n_steps = config.get("n_steps")
+        fold_every = config.get("fold_every")
+        for i in tqdm(range(n_steps)):
             # perform sampler forward
-            sampled_seqs = sampler.sample(sequences, k=FLAGS.k, current_energy=current_energy, temp=FLAGS.temp)
+            sampled_seqs = sampler.step(sequences)
             output_sequences = sampled_seqs.get('output')
-            current_energy = sampled_seqs.get('energy')
             res_sequences += output_sequences
 
-            if (i % FLAGS.fold_every == 0):
+            if (i % fold_every == 0):
                 # construct fasta file for folding
-                step_fasta_file_name = f"{s}_{i+1}.fasta"
+                step_fasta_file_name = f"{sampler_name}_{i+1}.fasta"
                 step_fasta_file_path = os.path.join(FLAGS.output, step_fasta_file_name)
                 step_fasta_file = fasta.FastaFile()
                 res_names = [f"{name}|{s}|STEP {i+1}" for name in names]
@@ -88,7 +117,7 @@ def main(argv):
                 step_fasta_file.write(step_fasta_file_path)
 
                 # fold fasta with OmegaFold
-                logging.info(f"Folding step {i+1}/{FLAGS.n}")
+                logging.info(f"Folding step {i+1}/{n_steps}")
                 fold_out = fold(omegafold_model, step_fasta_file_path, FLAGS.output)
                 confidence = [x['confidence_overall'] for x in fold_out]
                 confidences.append(confidence)

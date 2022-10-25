@@ -1,0 +1,16 @@
+{
+    "name": "test",
+    "n_steps": 10,
+    "fold_every": 5,
+    "samplers": {
+        "vanilla": {
+            "k": 1,
+            "gibbs": false
+        },
+        "metropolis": {
+            "parallel_batch": false,
+            "k": 1,
+            "temp": 1.0
+        }
+    }
+}

@@ -388,6 +388,7 @@ def get_args() -> typing.Tuple[
     # ----------------------
     parser.add_argument('--input', default=None, type=str)
     parser.add_argument('--output', default=None, type=str)
+    parser.add_argument('--config', default=None, type=str)
     parser.add_argument('--n', default=10, type=int)
     parser.add_argument('--fold_every', default=10, type=int)
     # ----------------------
