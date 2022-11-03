@@ -3,8 +3,6 @@ from tqdm import tqdm
 import esm
 from einops import repeat, rearrange
 import random
-import sys
-sys.path.append("/Users/manu/Documents/prose")
 from samplers.Sampler import Sampler
 
 
