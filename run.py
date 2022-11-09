@@ -111,7 +111,7 @@ def main(argv):
                 step_fasta_file_name = f"{sampler_name}_{i+1}.fasta"
                 step_fasta_file_path = os.path.join(FLAGS.output, step_fasta_file_name)
                 step_fasta_file = fasta.FastaFile()
-                res_names = [f"{name}|{s}|STEP {i+1}" for name in names]
+                res_names = [f"{name}|{sampler_name}|STEP {i+1}" for name in names]
                 for j, res_name in enumerate(res_names):
                     step_fasta_file[res_name] = res_sequences[j]
                 step_fasta_file.write(step_fasta_file_path)
