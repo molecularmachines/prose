@@ -89,6 +89,12 @@ def main(argv):
     sequences = [str(s) for s in sequences]
     names = list(fasta_sequences.keys())
 
+    # save config file to output dir
+    RUN_CONFIG_FILE = os.path.join(FLAGS.output, CONFIG_FILE)
+    with open(RUN_CONFIG_FILE, "w") as f:
+        json.dump(config, f)
+    logging.info(f'config has been written to {CONFIG_FILE}')
+
     # run all samplers
     res_json = {"original_sequences": sequences}
     for idx, sampler in enumerate(user_samplers):
@@ -126,22 +132,17 @@ def main(argv):
             sequences = output_sequences
 
         # construct result for sampler
-        logging.info(f"logging results for sampler: {s}")
+        logging.info(f"logging results for sampler: {sampler_name}")
         sampler_json = {"res_sequences": res_sequences,
                         "confidences": confidences}
-        res_json[s] = sampler_json
+        res_json[sampler_name] = sampler_json
 
     # write results to file
     OUTPUT_FILE = os.path.join(FLAGS.output, RESULTS_FILE)
-    RUN_CONFIG_FILE = os.path.join(FLAGS.output, CONFIG_FILE)
 
     with open(OUTPUT_FILE, "w") as f:
         json.dump(res_json, f)
     logging.info(f'results have been written to {OUTPUT_FILE}')
-
-    with open(RUN_CONFIG_FILE, "w") as f:
-        json.dump(config, f)
-    logging.info(f'config has been written to {CONFIG_FILE}')
 
 
 if __name__ == '__main__':
