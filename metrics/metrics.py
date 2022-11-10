@@ -51,7 +51,7 @@ def main(argv):
     del argv
     # read results JSON file
     results_path = os.path.join(FLAGS.results_dir, RESULTS_FILE)
-    results = json.load(results_path)
+    results = json.load(open(results_path))
 
     # calculate all metrics
     metrics = dict()
