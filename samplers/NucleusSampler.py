@@ -1,7 +1,4 @@
 import torch
-
-import sys
-sys.path.append("/Users/manu/Documents/prose")
 import torch.nn.functional as F
 from tqdm import tqdm
 import esm
@@ -92,7 +89,3 @@ class NucleusSampler(Sampler):
         
         return {"output": predictions}
 
-import json
-config = json.load(open("/Users/manu/Documents/prose/config.json"))
-esm_model, alphabet = esm.pretrained.esm2_t33_650M_UR50D()
-print(NucleusSampler(model=esm_model,alphabet=alphabet,config=config).step(sampling_order='random',sequence="MKVIF"))
