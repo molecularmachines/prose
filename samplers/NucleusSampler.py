@@ -1,4 +1,7 @@
 import torch
+
+import sys
+sys.path.append("/Users/manu/Documents/prose")
 import torch.nn.functional as F
 from tqdm import tqdm
 import esm
@@ -21,7 +24,11 @@ class NucleusSampler(Sampler):
         self._validate_req_fields(config, req_fields)
 
     def untokenize_sequence(self,tokens):
-      return [self.alphabet.all_toks[i.cpu().item()] for i in tokens.squeeze()]
+      """
+      Removes <cls> and <eos> tokens
+      """
+      untokens = [self.alphabet.all_toks[i.cpu().item()] for i in tokens.squeeze()]
+      return "".join(untokens[1:len(untokens)-1])
 
     def propose_new_sequence(self, masked_tokens, pos, temp=1.0,top_p=0.9):
         with torch.no_grad():
@@ -50,9 +57,9 @@ class NucleusSampler(Sampler):
         next_token = torch.distributions.Categorical(logits=logits)
         new_tokens = next_token.sample()
         #TODO: Have to figure out a way to penalize picking repeated characters
-        return new_tokens
+        return new_tokens[pos]
 
-    def step(self, sequence, sampling_order='next',k=5,block_size=2,temperature=1.0,max_length=300):
+    def step(self, sequence, sampling_order='next',num_trials=5,block_size=2,temperature=1.0,max_length=300):
         """
         Inputs
 
@@ -78,14 +85,18 @@ class NucleusSampler(Sampler):
   
         tokens = seed_tokens.clone() #copy the seed tokens
         num_tokens = tokens.shape[1] 
-        for i in range(k):
+        for i in range(num_trials):
             masked_tokens = tokens.clone()
             random_position = random.choice(range(0,num_tokens-1))
             masked_tokens[:,random_position+1] = self.mask_token_id
             new_sequence_tokens = self.propose_new_sequence(masked_tokens,pos=random_position+1)
-            masked_tokens = new_sequence_tokens
+            masked_tokens[:,i] = new_sequence_tokens
             tokens = masked_tokens.clone()
             predictions.append(self.untokenize_sequence(tokens))
         
         return {"output": predictions}
 
+import json
+config = json.load(open("/Users/manu/Documents/prose/config.json"))
+esm_model, alphabet = esm.pretrained.esm2_t33_650M_UR50D()
+print(NucleusSampler(model=esm_model,alphabet=alphabet,config=config).step(sampling_order='random',sequence="KGVAPLHLGKCNIAGWILGNPECESLSTASSWSYIVETSSSDNGTCYPGDFIDYEELREQLSSVSSFERFEIFPKTSSWPNHDSNKGVTAACPHAGAKSFYKNLIWLVKKGNSYPKLSKSYINDKGKEVLVLWGIHHPSTSADQQSLYQNADAYVFVGSSRYSKKFKPEIAIRPKVRDQEGRMNYYWTLVEPGDKITFEATGNLVVPRYAFAMERNAGSGIIISD"))
