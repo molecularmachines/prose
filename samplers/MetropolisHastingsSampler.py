@@ -37,7 +37,7 @@ class MetropolisHastingsSampler(Sampler):
             torch.randperm(sequence_length)[:k] for _ in range(batch_size)]).to(self.device)
 
         num_tokens = len(self.alphabet.tok_to_idx)
-        selector_buffer = rearrange(torch.arange(0, sequence_length).to(device), 's -> () s ()')
+        selector_buffer = rearrange(torch.arange(0, sequence_length).to(self.device), 's -> () s ()')
         logits_selector = selector_buffer == rearrange(choice, 'b k -> b () k')
         sequence_selector = logits_selector.sum(-1).bool()
 
@@ -78,7 +78,7 @@ class MetropolisHastingsSampler(Sampler):
         if current_energy is None:
             current_energy = self.compute_sequence_energy(tokens, temp=temp)
 
-        accepted, trials = torch.zeros((batch_size,), device=self.device).bool(), torch.zeros((batch_size, ), device=device)
+        accepted, trials = torch.zeros((batch_size,), device=self.device).bool(), torch.zeros((batch_size, ), device=self.device)
         accepted_tokens = torch.zeros_like(tokens, device=self.device).long()
         accepted_energies = torch.zeros((batch_size,), device=self.device).float()
 
