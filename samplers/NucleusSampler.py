@@ -1,4 +1,7 @@
 import torch
+
+import sys
+sys.path.append("/Users/manu/Documents/prose")
 import torch.nn.functional as F
 from tqdm import tqdm
 import esm
@@ -23,7 +26,7 @@ class NucleusSampler(Sampler):
     def untokenize_sequence(self,tokens):
       return [self.alphabet.all_toks[i.cpu().item()] for i in tokens.squeeze()]
 
-    def propose_new_sequence(self, masked_tokens, pos, temp=1.0,top_p=0.3):
+    def propose_new_sequence(self, masked_tokens, pos, temp=1.0,top_p=0.9):
         with torch.no_grad():
             results = self.model(masked_tokens, repr_layers=[33], return_contacts=False)
         #Sub select logits for only valid characters - ignore eos mask etc. 
@@ -32,15 +35,21 @@ class NucleusSampler(Sampler):
         if temp is not None:
           logits = logits/temp
         sorted_logits, sorted_indices = torch.sort(logits, descending=True)
+       
+        #Get the cummulative probabilities from the logits  - Apply softmax first logits -> probs
         cumulative_probs = torch.cumsum(F.softmax(sorted_logits, dim=-1), dim=-1)
-        sorted_indices_to_remove = cumulative_probs >= top_p
-         # Shift the indices to the right to keep also the first token above the threshold
-        sorted_indices_to_remove[..., 1:] = sorted_indices_to_remove[..., :-1].clone()
-        sorted_indices_to_remove[..., 0] = 0
-        indices_to_remove = sorted_indices_to_remove.scatter(dim=1, index=sorted_indices, src=sorted_indices_to_remove)
-        logits[indices_to_remove] = 0
+        remove_indices_after_cumprob = cumulative_probs >= top_p
+        
+         # Shift the indices to right to keep the first token to be false
+        remove_indices_after_cumprob[..., 1:] = remove_indices_after_cumprob[..., :-1].clone()
+        remove_indices_after_cumprob[..., 0] = 0
+
+        indices_to_remove = remove_indices_after_cumprob.scatter(dim=-1, index=sorted_indices, src=remove_indices_after_cumprob)
+
+        #smooth logiths - maybe not needed here
         logits = logits - logits.logsumexp(dim=-1, keepdim=True)
         logits[indices_to_remove] = -float('Inf')
+        #Sample a new set of tokens
         next_token = torch.distributions.Categorical(logits=logits)
         new_tokens = next_token.sample()
         #TODO: Have to figure out a way to penalize picking repeated characters
@@ -69,39 +78,21 @@ class NucleusSampler(Sampler):
         #get the embedding of the seed sequence
         with torch.no_grad():
             results = self.model(seed_tokens, repr_layers=[33], return_contacts=False)
+  
+        tokens = seed_tokens.clone() #copy the seed tokens
+        num_tokens = tokens.shape[1] 
+        for i in range(k):
+            masked_tokens = tokens.clone()
+            random_position = random.choice(range(0,num_tokens-1))
+            masked_tokens[:,random_position+1] = self.mask_token_id
+            new_sequence_tokens = self.propose_new_sequence(masked_tokens,pos=random_position+1)
+            masked_tokens = new_sequence_tokens
+            tokens = masked_tokens.clone()
+            predictions.append(self.untokenize_sequence(tokens))
         
-        if sampling_order == 'next':
-          #Next token sampler - First token is a CLS token so will ignore that one
-          tokens = seed_tokens.clone() #copy the seed tokens 
-          for i in range(1,tokens.shape[1]-1):
-              masked_tokens = tokens.clone()
-              masked_tokens[:,i] = self.mask_token_id
-              new_sequence_tokens = self.propose_new_sequence(masked_tokens,pos=i)
-              masked_tokens[:,i] = new_sequence_tokens[0]
-              tokens = masked_tokens.clone()
-              predictions.append(self.untokenize_sequence(tokens))
-        elif sampling_order == 'random':
-          #Next token sampler - First token is a CLS token so will ignore that one
-          tokens = seed_tokens.clone() #copy the seed tokens
-          num_tokens = tokens.shape[1] 
-          for i in range(k):
-              masked_tokens = tokens.clone()
-              random_position = random.choice(range(0,num_tokens-1))
-              masked_tokens[:,random_position+1] = self.mask_token_id
-              new_sequence_tokens = self.propose_new_sequence(masked_tokens,pos=random_position+1)
-              masked_tokens[:,i] = new_sequence_tokens[0]
-              tokens = masked_tokens.clone()
-              predictions.append(self.untokenize_sequence(tokens))
-        elif sampling_order == 'block':
-          #Next token sampler - First token is a CLS token so will ignore that one
-          tokens = seed_tokens.clone() #copy the seed tokens
-          num_tokens = tokens.shape[1] 
-          for i in range(k):
-              masked_tokens = tokens.clone()
-              random_position = random.choice(range(0,num_tokens-1))
-              masked_tokens[:,random_position+1] = self.mask_token_id
-              new_sequence_tokens = self.propose_new_sequence(masked_tokens,pos=random_position+1)
-              masked_tokens[:,i] = new_sequence_tokens[0]
-              tokens = masked_tokens.clone()
-              predictions.append(self.untokenize_sequence(tokens))
         return {"output": predictions}
+
+import json
+config = json.load(open("/Users/manu/Documents/prose/config.json"))
+esm_model, alphabet = esm.pretrained.esm2_t33_650M_UR50D()
+print(NucleusSampler(model=esm_model,alphabet=alphabet,config=config).step(sampling_order='random',sequence="MKVIF"))
