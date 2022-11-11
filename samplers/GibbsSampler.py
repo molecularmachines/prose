@@ -96,8 +96,3 @@ class GibbsSampler(Sampler):
               tokens = masked_tokens.clone()
               predictions.append(self.untokenize_sequence(tokens))
         return {"output": predictions}
-
-import json
-config = json.load(open("/Users/manu/Documents/prose/config.json"))
-esm_model, alphabet = esm.pretrained.esm2_t33_650M_UR50D()
-print(GibbsSampler(model=esm_model,alphabet=alphabet,config=config).step(sampling_order='random',sequence="MKVIF"))
