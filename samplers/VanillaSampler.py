@@ -6,6 +6,8 @@ from samplers.Sampler import Sampler
 class VanillaSampler(Sampler):
 
     def __init__(self, model, alphabet, config):
+        """
+        """
         super().__init__(model, alphabet, config)
         req_fields = ["k"]
         self._validate_req_fields(config, req_fields)

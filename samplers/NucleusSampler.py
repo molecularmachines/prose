@@ -1,12 +1,10 @@
 import torch
 
-import torch.nn.functional as F
 import sys
 sys.path.append("/Users/manu/Documents/prose")
-
+import torch.nn.functional as F
 from tqdm import tqdm
 import esm
-from einops import repeat, rearrange
 import random
 from samplers.Sampler import Sampler
 
@@ -28,7 +26,7 @@ class NucleusSampler(Sampler):
     def untokenize_sequence(self,tokens):
       return [self.alphabet.all_toks[i.cpu().item()] for i in tokens.squeeze()]
 
-    def propose_new_sequence(self, masked_tokens, pos, temp=1.0,top_p=0.9):
+    def propose_new_sequence(self, masked_tokens, pos, temp=1.0,top_p=0.3):
         with torch.no_grad():
             results = self.model(masked_tokens, repr_layers=[33], return_contacts=False)
         #Sub select logits for only valid characters - ignore eos mask etc. 
@@ -37,13 +35,14 @@ class NucleusSampler(Sampler):
         if temp is not None:
           logits = logits/temp
         sorted_logits, sorted_indices = torch.sort(logits, descending=True)
+        print(sorted_indices)
         cumulative_probs = torch.cumsum(F.softmax(sorted_logits, dim=-1), dim=-1)
         sorted_indices_to_remove = cumulative_probs >= top_p
          # Shift the indices to the right to keep also the first token above the threshold
         sorted_indices_to_remove[..., 1:] = sorted_indices_to_remove[..., :-1].clone()
+        
         sorted_indices_to_remove[..., 0] = 0
-        print(sorted_indices.shape,sorted_indices_to_remove.shape)
-        indices_to_remove = sorted_indices_to_remove.scatter(dim=2, index=sorted_indices, src=sorted_indices_to_remove)
+        indices_to_remove = sorted_indices_to_remove.scatter(dim=1, index=sorted_indices, src=sorted_indices_to_remove)
         logits[indices_to_remove] = 0
         logits = logits - logits.logsumexp(dim=-1, keepdim=True)
         logits[indices_to_remove] = -float('Inf')
@@ -112,7 +111,7 @@ class NucleusSampler(Sampler):
               predictions.append(self.untokenize_sequence(tokens))
         return {"output": predictions}
 
-# import json
-# config = json.load(open("/Users/manu/Documents/prose/config.json"))
-# esm_model, alphabet = esm.pretrained.esm2_t33_650M_UR50D()
-# print(NucleusSampler(model=esm_model,alphabet=alphabet,config=config).step(sampling_order='random',sequence="MKVIF"))
+import json
+config = json.load(open("/Users/manu/Documents/prose/config.json"))
+esm_model, alphabet = esm.pretrained.esm2_t33_650M_UR50D()
+print(NucleusSampler(model=esm_model,alphabet=alphabet,config=config).step(sampling_order='random',sequence="MKVIF"))
