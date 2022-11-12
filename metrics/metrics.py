@@ -59,7 +59,8 @@ def main(argv):
 
     # save metrics to metrics JSON file
     logging.info(f"Logging metrics file to {METRICS_FILE}")
-    with open(METRICS_FILE, "w") as f:
+    metrics_path = os.path.join(FLAGS.results_dir, METRICS_FILE)
+    with open(metrics_path, "w") as f:
         json.dump(metrics, f)
 
 
