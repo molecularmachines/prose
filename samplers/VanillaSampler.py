@@ -17,6 +17,7 @@ class VanillaSampler(Sampler):
         batch_labels, batch_str, batch_tokens = self.batch_converter(data)
 
         # ESM inference
+        batch_tokens = batch_tokens.to(self.device)
         with torch.no_grad():
             results = self.model(batch_tokens, repr_layers=[33], return_contacts=False)
 
