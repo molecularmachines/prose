@@ -96,7 +96,7 @@ def main(argv):
     logging.info(f'config has been written to {CONFIG_FILE}')
 
     # run all samplers
-    res_json = {"original_sequences": sequences}
+    res_json = {"original_sequences": sequences, "samplers": {}}
     for idx, sampler in enumerate(user_samplers):
         sampler_name = user_sampler_names[idx]
         logging.info(f"sampling with method: {sampler_name}")
@@ -110,7 +110,7 @@ def main(argv):
             # perform sampler forward
             sampled_seqs = sampler.step(sequences)
             output_sequences = sampled_seqs.get('output')
-            res_sequences += output_sequences
+            res_sequences.append(output_sequences)
 
             if (i % fold_every == 0):
                 # construct fasta file for folding
@@ -119,7 +119,7 @@ def main(argv):
                 step_fasta_file = fasta.FastaFile()
                 res_names = [f"{name}|{sampler_name}|STEP {i+1}" for name in names]
                 for j, res_name in enumerate(res_names):
-                    step_fasta_file[res_name] = res_sequences[j]
+                    step_fasta_file[res_name] = res_sequences[i][j]
                 step_fasta_file.write(step_fasta_file_path)
 
                 # fold fasta with OmegaFold
@@ -135,7 +135,7 @@ def main(argv):
         logging.info(f"logging results for sampler: {sampler_name}")
         sampler_json = {"res_sequences": res_sequences,
                         "confidences": confidences}
-        res_json[sampler_name] = sampler_json
+        res_json["samplers"][sampler_name] = sampler_json
 
     # write results to file
     OUTPUT_FILE = os.path.join(FLAGS.output, RESULTS_FILE)
