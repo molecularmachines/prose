@@ -1,11 +1,7 @@
 run.experiment = "dev"
 run.repo = '~/expts/prose/'
 
-
-fasta_file.input = './examples/2HBB.fasta'
-
-
-# please have your username below
+run.start_fasta = './examples/2HBB.fasta'
 run.sampler = @MetropolisHastingsSampler
 run.n_steps = 100
 run.fold_every = 5

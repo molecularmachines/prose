@@ -9,50 +9,28 @@ from tqdm import tqdm
 from time import gmtime, strftime
 import torch.nn as nn
 from samplers import Sampler
-from biotite.sequence.io import fasta
 from omegafold.__main__ import main as fold
 from omegafold.__main__ import model
 from samplers import MetropolisHastingsSampler, VanillaSampler
 from aim import Run as Register
 from aim import Text, Figure
 from typing import List, Tuple
-import plotly.express as px
 from pathlib import Path
 import numpy as np
+from utils import gin_config_to_dict, load_fasta_file, save_fasta_file
 
-
-# constants
-RESULTS_FILE = "results.json"
 CONFIG_FILE = "config.gin"
-N_STEPS_DEFAULT = 100
-K_DEFAULT = 1
-FOLD_EVERY_DEFAULT = 5
 
 # experiment program run arguments
 FLAGS = flags.FLAGS
 flags.DEFINE_string("config", CONFIG_FILE, "Path to config json file")
 
 
-def gin_config_to_dict(gin_config: dict):
-    """
-    Originally from https://github.com/google/gin-config/issues/154
-    Parses the gin configuration to a dictionary. Useful for logging to e.g. W&B
-    :param gin_config: the gin's config dictionary. Can be obtained by gin.config._OPERATIVE_CONFIG
-    :return: the parsed (mainly: cleaned) dictionary
-    """
-    data = {}
-    for key in gin_config.keys():
-        name = key[1].split(".")[1]
-        values = gin_config[key]
-        for k, v in values.items():
-            data[".".join([name, k])] = str(v)
-    return data
 
 
 @gin.configurable
 def run(
-    sequences: List[str],
-    names: List[str],
+    start_fasta: str,
     sampler: Sampler,
     n_steps: int = gin.REQUIRED,
     fold_every: int = gin.REQUIRED,
@@ -60,6 +38,7 @@ def run(
     repo: str = gin.REQUIRED,
 ):
     logging.info(f"sampling with : {sampler}")
+    sequences, names = load_fasta_file(start_fasta)
 
     # load ESM to memory
     logging.info("loading ESM2")
@@ -86,17 +65,14 @@ def run(
         sampled_seqs = sampler.step(sequences)
         output_sequences = sampled_seqs.get("output")
         res_sequences.append(output_sequences)
-        register.track(output_sequences, name="sequence", step=step)
+        register.track(Text(output_sequences[0]), name="sequence", step=step)
 
         if step % fold_every == 0:
             # construct fasta file for folding
             step_fasta_file_name = f"{sampler}_{step+1}.fasta"
             step_fasta_file_path = os.path.join(register_dir, step_fasta_file_name)
-            step_fasta_file = fasta.FastaFile()
-            res_names = [f"{name}|{sampler}|STEP {step+1}" for name in names]
-            for j, res_name in enumerate(res_names):
-                step_fasta_file[res_name] = res_sequences[step][j]
-            step_fasta_file.write(step_fasta_file_path)
+            step_names = [f"{name}|{sampler}|STEP {step+1}" for name in names]
+            save_fasta_file(output_sequences, step_names, step_fasta_file_path)
 
             # fold fasta with OmegaFold
             logging.info(f"Folding step {step+1}/{n_steps}")
@@ -111,25 +87,12 @@ def run(
     return register
 
 
-@gin.configurable()
-def fasta_file(input: str) -> List[Tuple[str]]:
-    # read input fasta file
-    fasta_file = fasta.FastaFile.read(input)
-    fasta_sequences = fasta.get_sequences(fasta_file)
-    sequences = list(fasta_sequences.values())
-    sequences = [str(s) for s in sequences]
-    names = list(fasta_sequences.keys())
-    return sequences, names
-
-
 def main(argv):
     del argv  # Unused.
 
     # parse config file
-    gin.parse_config_file("config.gin")
-
-    sequences, names = fasta_file()
-    register, results = run(sequences, names)
+    gin.parse_config_file(FLAGS.config)
+    register = run()
 
 
 if __name__ == "__main__":
