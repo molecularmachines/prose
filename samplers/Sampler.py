@@ -12,12 +12,10 @@ class Sampler:
 
     MASK_TOKEN = "<mask>"
 
-    def __init__(self, model, alphabet, config):
-
+    def __init__(self, model, alphabet):
         # initialize sampler config and model
         self.model = model
         self.alphabet = alphabet
-        self.config = config
         self.batch_converter = self.alphabet.get_batch_converter()
         self.model.eval()
 
@@ -28,11 +26,6 @@ class Sampler:
         # constants
         self.MASK_TOKEN_IDX = self.alphabet.tok_to_idx[Sampler.MASK_TOKEN]
 
-    def _validate_req_fields(self, config: dict, req_fields: List[str]):
-        for field in req_fields:
-            assert field in config.keys(), f"Field {field} has to exist in config"
-        for k, v in config.items():
-            setattr(self, k, v)
 
     def step(self, sequences: List[str]) -> dict:
         return {"output": ""}

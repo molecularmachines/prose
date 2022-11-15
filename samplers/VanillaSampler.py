@@ -1,18 +1,23 @@
 import torch
+import gin
 
 from samplers.Sampler import Sampler
 
 
+@gin.configurable
 class VanillaSampler(Sampler):
+    def __init__(self, model, alphabet, k: int = gin.REQUIRED):
+        super().__init__(model, alphabet)
+        self.k = k
 
-    def __init__(self, model, alphabet, config):
-        super().__init__(model, alphabet, config)
-        req_fields = ["k"]
-        self._validate_req_fields(config, req_fields)
+    def __str__(self):
+        return f"vanilla-sampler[k={self.k}]"
 
     def step(self, sequences):
         # data in correct ESM format
-        masked_sequences = [self._mask_sequence_randomly(seq, self.k) for seq in sequences]
+        masked_sequences = [
+            self._mask_sequence_randomly(seq, self.k) for seq in sequences
+        ]
         data = [(str(i + 1), masked_sequences[i]) for i in range(len(sequences))]
         batch_labels, batch_str, batch_tokens = self.batch_converter(data)
 
@@ -22,7 +27,7 @@ class VanillaSampler(Sampler):
             results = self.model(batch_tokens, repr_layers=[33], return_contacts=False)
 
         # retrieve logits from model and sample accordingly
-        logits = results['logits']
+        logits = results["logits"]
         predictions = []
 
         top_probs = torch.argmax(logits, dim=2)

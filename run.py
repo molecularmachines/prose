@@ -1,4 +1,5 @@
 import os
+import gin
 import json
 import esm
 from absl import app
@@ -6,144 +7,130 @@ from absl import flags
 from absl import logging
 from tqdm import tqdm
 from time import gmtime, strftime
-
-from samplers import VanillaSampler, MetropolisHastingsSampler
+import torch.nn as nn
+from samplers import Sampler
 from biotite.sequence.io import fasta
 from omegafold.__main__ import main as fold
 from omegafold.__main__ import model
+from samplers import MetropolisHastingsSampler, VanillaSampler
+from aim import Run as Register
+from aim import Text, Figure
+from typing import List, Tuple
+import plotly.express as px
+from pathlib import Path
+import numpy as np
 
 
 # constants
 RESULTS_FILE = "results.json"
-CONFIG_FILE = "config.json"
+CONFIG_FILE = "config.gin"
 N_STEPS_DEFAULT = 100
 K_DEFAULT = 1
 FOLD_EVERY_DEFAULT = 5
 
 # experiment program run arguments
 FLAGS = flags.FLAGS
-flags.DEFINE_string("input", None, "Path to fasta sequences file")
-flags.DEFINE_string("output", "out", "Path to output directory")
 flags.DEFINE_string("config", CONFIG_FILE, "Path to config json file")
 
-# required arguments
-flags.mark_flag_as_required("input")
 
-samplers = {
-    "vanilla": VanillaSampler,
-    "metropolis": MetropolisHastingsSampler
-}
+def gin_config_to_dict(gin_config: dict):
+    """
+    Originally from https://github.com/google/gin-config/issues/154
+    Parses the gin configuration to a dictionary. Useful for logging to e.g. W&B
+    :param gin_config: the gin's config dictionary. Can be obtained by gin.config._OPERATIVE_CONFIG
+    :return: the parsed (mainly: cleaned) dictionary
+    """
+    data = {}
+    for key in gin_config.keys():
+        name = key[1].split(".")[1]
+        values = gin_config[key]
+        for k, v in values.items():
+            data[".".join([name, k])] = str(v)
+    return data
 
 
-def init_config(config_file: str) -> dict:
-    # read config file
-    logging.info(f"reading config file: {config_file}")
-    config = json.load(open(config_file))
+@gin.configurable
+def run(
+    sequences: List[str],
+    names: List[str],
+    sampler: Sampler,
+    n_steps: int = gin.REQUIRED,
+    fold_every: int = gin.REQUIRED,
+    experiment: str = gin.REQUIRED,
+    repo: str = gin.REQUIRED,
+):
+    logging.info(f"sampling with : {sampler}")
 
-    # validate required fields
-    req_fields = ["n_steps", "samplers"]
-    for field in req_fields:
-        assert field in config.keys(), f"Config file must contain {field}"
+    # load ESM to memory
+    logging.info("loading ESM2")
+    esm_model, alphabet = esm.pretrained.esm2_t33_650M_UR50D()
+    sampler = sampler(esm_model, alphabet)
 
-    # store defaults to config
-    t = strftime('%Y-%m-%d-%H-%M-%S', gmtime())
-    config["name"] = config.get("name", t)
-    config["date"] = t
-    config["fold_every"] = config.get("fold_every", FOLD_EVERY_DEFAULT)
-    config["n_steps"] = config.get("n_steps", N_STEPS_DEFAULT)
-    config["k"] = config.get("k", K_DEFAULT)
+    # load omegafold to memory
+    logging.info("loading Omegafold")
+    folder = model()
 
-    return config
+    # set up Aim run where we keep track of metrics
+    register = Register(experiment=experiment, repo=repo)
+    register["hparams"] = gin_config_to_dict(gin.config._OPERATIVE_CONFIG)
+
+    # save files in the same path as Aim, using the hash as dir
+    register_dir = str(Path(repo) / register.hash)
+    os.makedirs(register_dir, exist_ok=False)
+
+    res_sequences = []
+
+    # sample n times from each sampler
+    for step in tqdm(range(n_steps)):
+        # perform sampler forward
+        sampled_seqs = sampler.step(sequences)
+        output_sequences = sampled_seqs.get("output")
+        res_sequences.append(output_sequences)
+        register.track(output_sequences, name="sequence", step=step)
+
+        if step % fold_every == 0:
+            # construct fasta file for folding
+            step_fasta_file_name = f"{sampler}_{step+1}.fasta"
+            step_fasta_file_path = os.path.join(register_dir, step_fasta_file_name)
+            step_fasta_file = fasta.FastaFile()
+            res_names = [f"{name}|{sampler}|STEP {step+1}" for name in names]
+            for j, res_name in enumerate(res_names):
+                step_fasta_file[res_name] = res_sequences[step][j]
+            step_fasta_file.write(step_fasta_file_path)
+
+            # fold fasta with OmegaFold
+            logging.info(f"Folding step {step+1}/{n_steps}")
+            fold_out = fold(folder, step_fasta_file_path, register_dir)
+            confidence = [x["confidence_overall"] for x in fold_out]
+            register.track(
+                sum(confidence) / len(confidence), name="mean_confidence", step=step
+            )
+        # next step in trajectory from current step
+        sequences = output_sequences
+
+    return register
+
+
+@gin.configurable()
+def fasta_file(input: str) -> List[Tuple[str]]:
+    # read input fasta file
+    fasta_file = fasta.FastaFile.read(input)
+    fasta_sequences = fasta.get_sequences(fasta_file)
+    sequences = list(fasta_sequences.values())
+    sequences = [str(s) for s in sequences]
+    names = list(fasta_sequences.keys())
+    return sequences, names
 
 
 def main(argv):
     del argv  # Unused.
 
-    # load ESM to memory
-    logging.info("loading ESM2")
-    esm_model, alphabet = esm.pretrained.esm2_t33_650M_UR50D()
-    logging.info("done loading")
+    # parse config file
+    gin.parse_config_file("config.gin")
 
-    # initialize config from file
-    config = init_config(FLAGS.config)
-
-    # load omegafold to memory
-    omegafold_model = model()
-
-    # choose sampling methods
-    user_sampler_names = list(config.get("samplers").keys())
-    user_samplers = []
-    for sampler in user_sampler_names:
-        sampler_config = config["samplers"][sampler]
-        s = samplers[sampler](esm_model, alphabet, sampler_config)
-        user_samplers.append(s)
-
-    # prepare output directory
-    if not os.path.exists(FLAGS.output):
-        os.makedirs(FLAGS.output)
-
-    # read input fasta file
-    fasta_file = fasta.FastaFile.read(FLAGS.input)
-    fasta_sequences = fasta.get_sequences(fasta_file)
-    sequences = list(fasta_sequences.values())
-    sequences = [str(s) for s in sequences]
-    names = list(fasta_sequences.keys())
-
-    # save config file to output dir
-    RUN_CONFIG_FILE = os.path.join(FLAGS.output, CONFIG_FILE)
-    with open(RUN_CONFIG_FILE, "w") as f:
-        json.dump(config, f)
-    logging.info(f'config has been written to {CONFIG_FILE}')
-
-    # run all samplers
-    res_json = {"original_sequences": sequences, "samplers": {}}
-    for idx, sampler in enumerate(user_samplers):
-        sampler_name = user_sampler_names[idx]
-        logging.info(f"sampling with method: {sampler_name}")
-        res_sequences = []
-        confidences = []
-
-        # sample n times from each sampler
-        n_steps = config.get("n_steps")
-        fold_every = config.get("fold_every")
-        for i in tqdm(range(n_steps)):
-            # perform sampler forward
-            sampled_seqs = sampler.step(sequences)
-            output_sequences = sampled_seqs.get('output')
-            res_sequences.append(output_sequences)
-
-            if (i % fold_every == 0):
-                # construct fasta file for folding
-                step_fasta_file_name = f"{sampler_name}_{i+1}.fasta"
-                step_fasta_file_path = os.path.join(FLAGS.output, step_fasta_file_name)
-                step_fasta_file = fasta.FastaFile()
-                res_names = [f"{name}|{sampler_name}|STEP {i+1}" for name in names]
-                for j, res_name in enumerate(res_names):
-                    step_fasta_file[res_name] = res_sequences[i][j]
-                step_fasta_file.write(step_fasta_file_path)
-
-                # fold fasta with OmegaFold
-                logging.info(f"Folding step {i+1}/{n_steps}")
-                fold_out = fold(omegafold_model, step_fasta_file_path, FLAGS.output)
-                confidence = [x['confidence_overall'] for x in fold_out]
-                confidences.append(confidence)
-
-            # next step in trajectory from current step
-            sequences = output_sequences
-
-        # construct result for sampler
-        logging.info(f"logging results for sampler: {sampler_name}")
-        sampler_json = {"res_sequences": res_sequences,
-                        "confidences": confidences}
-        res_json["samplers"][sampler_name] = sampler_json
-
-    # write results to file
-    OUTPUT_FILE = os.path.join(FLAGS.output, RESULTS_FILE)
-
-    with open(OUTPUT_FILE, "w") as f:
-        json.dump(res_json, f)
-    logging.info(f'results have been written to {OUTPUT_FILE}')
+    sequences, names = fasta_file()
+    register, results = run(sequences, names)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     app.run(main)

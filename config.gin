@@ -1,0 +1,18 @@
+run.experiment = "dev"
+run.repo = '~/expts/prose/'
+
+
+fasta_file.input = './examples/2HBB.fasta'
+
+
+# please have your username below
+run.sampler = @MetropolisHastingsSampler
+run.n_steps = 100
+run.fold_every = 5
+
+# config for Vanilla
+VanillaSampler.k = 1
+
+# config for MH
+MetropolisHastingsSampler.k = 1
+MetropolisHastingsSampler.temp = 1.0
