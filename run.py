@@ -17,6 +17,7 @@ from aim import Text, Figure
 from typing import List, Tuple
 from pathlib import Path
 import numpy as np
+from metrics.metrics import hamming_distance
 from utils import gin_config_to_dict, load_fasta_file, save_fasta_file
 
 CONFIG_FILE = "config.gin"
@@ -65,7 +66,12 @@ def run(
         sampled_seqs = sampler.step(sequences)
         output_sequences = sampled_seqs.get("output")
         res_sequences.append(output_sequences)
-        register.track(Text(output_sequences[0]), name="sequence", step=step)
+        
+        register.track(
+            Text(output_sequences[0]), name="sequence", step=step)
+        
+        hamming = hamming_distance(res_sequences[0][0], output_sequences[0])
+        register.track(hamming, name='hamming_distance', step=step)
 
         if step % fold_every == 0:
             # construct fasta file for folding
