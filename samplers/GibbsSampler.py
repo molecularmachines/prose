@@ -11,7 +11,7 @@ class GibbsSampler(Sampler):
     Gibbs Sampler is a MCMC sampling technqiue for generating a sample from a hard to sample distribution by using 
     conditional distributions. 
     """
-    def __init__(self, model, alphabet, k: int = gin.REQUIRED,block_size: int = gin.REQUIRED,start_at: int = gin.REQUIRED, temp: float = gin.REQUIRED,top_p:float=gin.REQUIRED,sampling_order:str=gin.REQUIRED):
+    def __init__(self, model, alphabet, block_size: int = gin.REQUIRED,start_at: int = gin.REQUIRED, temp: float = gin.REQUIRED,top_p:float=gin.REQUIRED,sampling_order:str=gin.REQUIRED):
         super().__init__(model, alphabet)
 
         self.mask_token_id = self.alphabet.tok_to_idx['<mask>']
