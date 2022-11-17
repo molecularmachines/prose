@@ -24,8 +24,6 @@ class GibbsSampler(Sampler):
       """
       Removes <cls and <eos> tokens
       """
-      
-      
       untokens = [self.alphabet.all_toks[i.cpu().item()] for i in tokens.squeeze()]
       return "".join(untokens[1:len(untokens)-1])
 
@@ -37,16 +35,15 @@ class GibbsSampler(Sampler):
         logits = results['logits'][:,pos,:]
         if temp is not None:
           logits = logits/temp
+
         allowed_aa = [self.alphabet.tok_to_idx[k] for k in 'ACDEFGHIKLMNPQRSTVY']
         disallowed_aa = [i for i in range(34) if i not in allowed_aa]
         logits[:,disallowed_aa]=float('-inf')
+        print(logits,"logits")
         dist = torch.distributions.categorical.Categorical(logits=logits)
         #accept the next best logit if the logit being predicted is actually not a allowed_aa
         new_tokens = dist.sample()
-        print(self.alphabet.tok_to_idx)
-        allowed_aa = [self.alphabet.tok_to_idx[k] for k in 'ACDEFGHIKLMNPQRSTVWY']
 
-        print(logits.shape)        
         return new_tokens
 
     def step(self, sequences):
