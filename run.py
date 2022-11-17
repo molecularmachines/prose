@@ -63,10 +63,11 @@ def run(
     # sample n times from each sampler
     for step in tqdm(range(n_steps)):
         # perform sampler forward
-        sampled_seqs = sampler.step(sequences)
-        output_sequences = sampled_seqs.get("output")
+        output_sequences, sample_metrics = sampler.step(sequences)
         res_sequences.append(output_sequences)
         
+        for key, value in sample_metrics.items():
+            register.track(value, name=key, step=step)
         register.track(
             Text(output_sequences[0]), name="sequence", step=step)
         

@@ -136,4 +136,4 @@ class MetropolisHastingsSampler(Sampler):
         print(predictions)
         self.current_energy = accepted_energies
 
-        return {"output": predictions, "trials": trials, "energy": accepted_energies}
+        return predictions, {"trials": trials, "energy": accepted_energies}

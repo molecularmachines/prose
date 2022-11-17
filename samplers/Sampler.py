@@ -1,5 +1,5 @@
 import torch
-from typing import List
+from typing import List, Tuple
 import random
 
 
@@ -27,8 +27,8 @@ class Sampler:
         self.MASK_TOKEN_IDX = self.alphabet.tok_to_idx[Sampler.MASK_TOKEN]
 
 
-    def step(self, sequences: List[str]) -> dict:
-        return {"output": ""}
+    def step(self, sequences: List[str]) -> Tuple[str, dict]:
+        return "", dict()
 
     @staticmethod
     def _mask_sequence(sequence: str, indices: List[int]) -> str:

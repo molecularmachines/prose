@@ -36,4 +36,4 @@ class VanillaSampler(Sampler):
             top_tokens = [self.alphabet.all_toks[i] for i in top_indices]
             predictions.append("".join(top_tokens[1:-1]))
 
-        return {"output": predictions}
+        return predictions, dict()
