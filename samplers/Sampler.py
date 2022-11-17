@@ -20,7 +20,7 @@ class Sampler:
         self.model.eval()
 
         # load model to correct device
-        self.device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
+        self.device = 'cuda:1' if torch.cuda.is_available() else 'cpu'
         self.model = self.model.to(self.device)
 
         # constants
