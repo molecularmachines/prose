@@ -49,6 +49,7 @@ class GibbsSampler(Sampler):
         """
         predictions = []
         sequence = sequences[0]
+        print(sequence,"DDDDDD")
         if not isinstance(sequence,str):
           raise Exception("Only pass one seed sequence")
 
@@ -56,7 +57,7 @@ class GibbsSampler(Sampler):
         batch = [(1,sequence)]
         labels,strs,seed_tokens = self.batch_converter(batch)
         seed_tokens = seed_tokens.to(self.device)
-
+        print(seed_tokens,"XXXX")
         #get the embedding of the seed sequence
         with torch.no_grad():
             results = self.model(seed_tokens, repr_layers=[33], return_contacts=False)
@@ -97,5 +98,5 @@ class GibbsSampler(Sampler):
               masked_tokens[:,select_position+1] = new_sequence_tokens[0]
               tokens = masked_tokens.clone()
               predictions.append(self.untokenize_sequence(tokens))
-
+        print(predictions)
         return predictions, {}
