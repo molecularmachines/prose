@@ -22,7 +22,8 @@ from utils import gin_config_to_dict, load_fasta_file, save_fasta_file
 from samplers import (
     VanillaSampler,
     MetropolisHastingsSampler, 
-    NucleusSampler
+    NucleusSampler,
+    GibbsSampler
 )
 
 
