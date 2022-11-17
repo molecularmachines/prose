@@ -100,4 +100,4 @@ class NucleusSampler(Sampler):
             tokens = masked_tokens.clone()
             predictions.append(self.untokenize_sequence(masked_tokens))
         
-        return predictions
+        return predictions, {}

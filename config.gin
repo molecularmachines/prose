@@ -2,7 +2,8 @@ run.experiment = "basic"
 run.repo = '~/expts/prose/'
 
 run.start_fasta = './examples/2HBB.fasta'
-run.sampler = @MetropolisHastingsSampler
+
+run.sampler = @NucleusSampler
 run.n_steps = 200
 run.fold_every = 20
 
@@ -12,3 +13,11 @@ VanillaSampler.k = 1
 # config for MH
 MetropolisHastingsSampler.k = 1
 MetropolisHastingsSampler.temp = 1.0
+
+
+# config for Nucleus
+NucleusSampler.block_size = 1
+NucleusSampler.start_at = 0
+NucleusSampler.temp = 1.0
+NucleusSampler.top_p = 0.5 
+NucleusSampler.sampling_order = 'random'

@@ -11,7 +11,6 @@ import torch.nn as nn
 from samplers import Sampler
 from omegafold.__main__ import main as fold
 from omegafold.__main__ import model
-from samplers import MetropolisHastingsSampler, VanillaSampler
 from aim import Run as Register
 from aim import Text, Figure
 from typing import List, Tuple
@@ -19,6 +18,14 @@ from pathlib import Path
 import numpy as np
 from metrics.metrics import hamming_distance
 from utils import gin_config_to_dict, load_fasta_file, save_fasta_file
+
+from samplers import (
+    VanillaSampler,
+    MetropolisHastingsSampler, 
+    NucleusSampler
+)
+
+
 
 CONFIG_FILE = "config.gin"
 
