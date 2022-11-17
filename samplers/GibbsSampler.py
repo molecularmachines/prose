@@ -37,21 +37,16 @@ class GibbsSampler(Sampler):
         logits = results['logits'][:,pos,:]
         if temp is not None:
           logits = logits/temp
+        allowed_aa = [self.alphabet.tok_to_idx[k] for k in 'ACDEFGHIKLMNPQRSTVY']
+        disallowed_aa = [i for i in range(34) if i not in allowed_aa]
+        logits[:,disallowed_aa]=float('-inf')
         dist = torch.distributions.categorical.Categorical(logits=logits)
         #accept the next best logit if the logit being predicted is actually not a allowed_aa
         new_tokens = dist.sample()
         print(self.alphabet.tok_to_idx)
         allowed_aa = [self.alphabet.tok_to_idx[k] for k in 'ACDEFGHIKLMNPQRSTVWY']
 
-        # while new_tokens not in allowed_aa:
-        #   new_tokens = dist.sample()
-
-        # print(new_tokens[0],allowed_aa)
-        # while new_tokens[0].cpu().item() not in allowed_aa:
-        #     print("resmaple")
-        #     new_tokens = dist.sample()
-        #TODO: Have to figure out a way to penalize picking repeated characters
-        
+        print(logits.shape)        
         return new_tokens
 
     def step(self, sequences):
