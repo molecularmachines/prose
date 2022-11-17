@@ -1,10 +1,10 @@
-run.experiment = "dev"
+run.experiment = "basic"
 run.repo = '~/expts/prose/'
 
 run.start_fasta = './examples/2HBB.fasta'
 run.sampler = @MetropolisHastingsSampler
-run.n_steps = 100
-run.fold_every = 5
+run.n_steps = 200
+run.fold_every = 20
 
 # config for Vanilla
 VanillaSampler.k = 1
