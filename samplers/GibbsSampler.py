@@ -24,6 +24,12 @@ class GibbsSampler(Sampler):
       """
       Removes <cls and <eos> tokens
       """
+      string_tokens = ""
+      for i in tokens.squeeze():
+        print(i.cpu().item())
+        print(self.alphabet.all_toks[i.cpu().item()])
+        string_tokens = string_tokens+self.alphabet.all_toks[i.cpu().item()]
+
       untokens = [self.alphabet.all_toks[i.cpu().item()] for i in tokens.squeeze()]
       return "".join(untokens[1:len(untokens)-1])
 
@@ -60,7 +66,7 @@ class GibbsSampler(Sampler):
         batch = [(1,sequence)]
         labels,strs,seed_tokens = self.batch_converter(batch)
         seed_tokens = seed_tokens.to(self.device)
-        print(seed_tokens,"XXXX")
+        
         #get the embedding of the seed sequence
         with torch.no_grad():
             results = self.model(seed_tokens, repr_layers=[33], return_contacts=False)
