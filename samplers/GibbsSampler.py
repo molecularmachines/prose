@@ -46,7 +46,8 @@ class GibbsSampler(Sampler):
         #accept the next best logit if the logit being predicted is actually not a allowed_aa
         new_tokens = dist.sample()
         
-        while new_tokens not in self.allowed_aa:
+        allowed_aa = [self.alphabet.tok_to_idx[k] for k in 'ACDEFGHIKLMNPQRSTVWY']
+        while new_tokens not in allowed_aa:
           new_tokens = dist.sample()
         #TODO: Have to figure out a way to penalize picking repeated characters
         return new_tokens
