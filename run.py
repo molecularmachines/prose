@@ -64,6 +64,7 @@ def run(
     # save files in the same path as Aim, using the hash as dir
     register_dir = str(Path(repo) / register.hash)
     os.makedirs(register_dir, exist_ok=False)
+    logging.info(f'Saving Structures to {register_dir}') 
 
     res_sequences = []
 

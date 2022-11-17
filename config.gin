@@ -1,10 +1,10 @@
 run.experiment = "basic"
-run.repo = '~/expts/prose/'
+run.repo = '/u/allanc/expts/prose/'
 
 run.start_fasta = './examples/2HBB.fasta'
 
 run.sampler = @NucleusSampler
-run.n_steps = 200
+run.n_steps = 500
 run.fold_every = 20
 
 # config for Vanilla
