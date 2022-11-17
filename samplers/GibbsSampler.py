@@ -83,9 +83,11 @@ class GibbsSampler(Sampler):
           for i in range(0,self.block_size):
               masked_tokens = tokens.clone()
               random_position = random.choice(range(0,num_tokens-1))
+              print(masked_tokens[:,select_position+1],"old")
               masked_tokens[:,random_position+1] = self.mask_token_id
               new_sequence_tokens = self.propose_new_sequence(masked_tokens,pos=random_position+1)
-              masked_tokens[:,i] = new_sequence_tokens[0]
+              print(new_sequence_tokens[0],"new")
+              masked_tokens[:,random_position+i] = new_sequence_tokens[0]
               tokens = masked_tokens.clone()
               predictions.append(self.untokenize_sequence(tokens))
 
@@ -96,8 +98,10 @@ class GibbsSampler(Sampler):
           for i in range(self.start_at,self.block_size):
               masked_tokens = tokens.clone() #make a copy
               select_position = self.start_at+i
+              print(masked_tokens[:,select_position+1],"old")
               masked_tokens[:,select_position+1] = self.mask_token_id
               new_sequence_tokens = self.propose_new_sequence(masked_tokens,pos=select_position+1)
+              print(new_sequence_tokens[0],"new")
               masked_tokens[:,select_position+1] = new_sequence_tokens[0]
               tokens = masked_tokens.clone()
               predictions.append(self.untokenize_sequence(tokens))
