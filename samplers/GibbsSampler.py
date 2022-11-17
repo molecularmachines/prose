@@ -21,7 +21,11 @@ class GibbsSampler(Sampler):
         self.sampling_order = sampling_order
 
     def untokenize_sequence(self,tokens):
-      return [self.alphabet.all_toks[i.cpu().item()] for i in tokens.squeeze()]
+      """
+      Removes <cls and <eos> tokens
+      """
+      untokens = [self.alphabet.all_toks[i.cpu().item()] for i in tokens.squeeze()]
+      return "".join(untokens[1:len(untokens)-1])
 
     def propose_new_sequence(self, masked_tokens, pos, temp=1.0):
         with torch.no_grad():
@@ -49,7 +53,6 @@ class GibbsSampler(Sampler):
         """
         predictions = []
         sequence = sequences[0]
-        print(sequence,"DDDDDD")
         if not isinstance(sequence,str):
           raise Exception("Only pass one seed sequence")
 
