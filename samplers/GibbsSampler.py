@@ -26,10 +26,8 @@ class GibbsSampler(Sampler):
       """
       string_tokens = ""
       for i in tokens.squeeze():
-        print(i.cpu().item())
-        print(self.alphabet.all_toks[i.cpu().item()])
         string_tokens = string_tokens+self.alphabet.all_toks[i.cpu().item()]
-
+      
       untokens = [self.alphabet.all_toks[i.cpu().item()] for i in tokens.squeeze()]
       return "".join(untokens[1:len(untokens)-1])
 
@@ -44,6 +42,11 @@ class GibbsSampler(Sampler):
         dist = torch.distributions.categorical.Categorical(logits=logits)
         new_tokens = dist.sample()
         #TODO: Have to figure out a way to penalize picking repeated characters
+        print(new_tokens,"SS")
+        allowed_tokens = [self.alphabet.tok_to_idx[k] for k in "ACDEFGHIKLMNPQRSTVWY"]
+        print(allowed_tokens)
+        while new_tokens not in allowed_tokens:
+            new_tokens = dist.sample()
         return new_tokens
 
     def step(self, sequences):
