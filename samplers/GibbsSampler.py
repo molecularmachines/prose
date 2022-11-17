@@ -25,12 +25,7 @@ class GibbsSampler(Sampler):
       Removes <cls and <eos> tokens
       """
       
-      string_tokens = ""
-      for i in tokens.squeeze():
-        print(i.cpu().item())
-        print(self.alphabet.all_toks[i.cpu().item()])
-        string_tokens = string_tokens+self.alphabet.all_toks[i.cpu().item()]
-
+      
       untokens = [self.alphabet.all_toks[i.cpu().item()] for i in tokens.squeeze()]
       return "".join(untokens[1:len(untokens)-1])
 
@@ -47,9 +42,12 @@ class GibbsSampler(Sampler):
         new_tokens = dist.sample()
         
         allowed_aa = [self.alphabet.tok_to_idx[k] for k in 'ACDEFGHIKLMNPQRSTVWY']
-        while new_tokens not in allowed_aa:
-          new_tokens = dist.sample()
+        print(new_tokens[0],allowed_aa)
+        while new_tokens[0].cpu().item() not in allowed_aa:
+            print("resmaple")
+            new_tokens = dist.sample()
         #TODO: Have to figure out a way to penalize picking repeated characters
+        
         return new_tokens
 
     def step(self, sequences):
@@ -95,12 +93,14 @@ class GibbsSampler(Sampler):
           for i in range(0,self.block_size):
               masked_tokens = tokens.clone()
               random_position = random.choice(range(0,num_tokens-1))
-
+              print(self.untokenize_sequence(masked_tokens))
               masked_tokens[:,random_position+1] = self.mask_token_id
+              print(masked_tokens[:,random_position+1],"gg")
               new_sequence_tokens = self.propose_new_sequence(masked_tokens,pos=random_position+1)
               
               masked_tokens[:,random_position+i] = new_sequence_tokens[0]
               tokens = masked_tokens.clone()
+              print(masked_tokens[:,random_position+1])
               predictions.append(self.untokenize_sequence(tokens))
 
         elif self.sampling_order == 'block':
@@ -110,11 +110,14 @@ class GibbsSampler(Sampler):
           for i in range(self.start_at,self.block_size):
               masked_tokens = tokens.clone() #make a copy
               select_position = self.start_at+i
+              print(self.untokenize_sequence(masked_tokens))
               masked_tokens[:,select_position+1] = self.mask_token_id
+              print(self.untokenize_sequence(masked_tokens))
               new_sequence_tokens = self.propose_new_sequence(masked_tokens,pos=select_position+1)
              
               masked_tokens[:,select_position+1] = new_sequence_tokens[0]
               tokens = masked_tokens.clone()
               predictions.append(self.untokenize_sequence(tokens))
 
+        print(predictions)
         return predictions, {}
