@@ -98,4 +98,4 @@ class GibbsSampler(Sampler):
               tokens = masked_tokens.clone()
               predictions.append(self.untokenize_sequence(tokens))
 
-        return {"output": predictions}
+        return predictions, {}
