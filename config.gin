@@ -1,5 +1,5 @@
 run.experiment = "basic"
-run.repo = '/u/allanc/expts/prose/'
+run.repo = '~/expts/prose/'
 
 run.start_fasta = './examples/2HBB.fasta'
 

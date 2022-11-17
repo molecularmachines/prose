@@ -45,6 +45,8 @@ def run(
     experiment: str = gin.REQUIRED,
     repo: str = gin.REQUIRED,
 ):
+    repo = str(Path(repo).expanduser())
+
     logging.info(f"sampling with : {sampler}")
     sequences, names = load_fasta_file(start_fasta)
 
