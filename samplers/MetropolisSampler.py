@@ -74,7 +74,7 @@ class MetropolisSampler(Sampler):
             tokens = token_from_mlm_conditional
         else:
             tokens = masked_tokens.clone()
-    
+        
         return tokens
         
     def step(self,sequences):
@@ -103,6 +103,7 @@ class MetropolisSampler(Sampler):
             random_position = random.choice(range(0,num_tokens-1))
             e_o = self.compute_sequence_energy(masked_tokens)
             new_sequence_tokens = self.propose_new_sequence(masked_tokens,random_position+1,e_o)
+            print(new_sequence_tokens,"SS")
             masked_tokens[:,random_position+1] = new_sequence_tokens[0]
             tokens = masked_tokens.clone()
             predictions.append(self.untokenize_sequence(masked_tokens))
