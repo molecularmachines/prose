@@ -50,10 +50,7 @@ class MetropolisSampler(Sampler):
 
     def propose_new_sequence(self,masked_tokens,pos,energy_old):
         #Propose a new sequence - sequentially first
-        list_of_available_tokens = self.alphabet.tok_to_idx
-        idx_to_tok = {v: k for k, v in list_of_available_tokens.items()}
-        old_token_id = idx_to_tok[int(masked_tokens[:,pos].cpu().numpy())]
-        masked_tokens[:,pos] = self.mask_token_id
+
         with torch.no_grad():
             results = self.model(masked_tokens, repr_layers=[33], return_contacts=False)
         
