@@ -68,7 +68,7 @@ class MetropolisSampler(Sampler):
         w_o_n = mlm_conditional.log_prob(token_from_mlm_conditional)[:,pos]
         energy_new = self.compute_sequence_energy(token_from_mlm_conditional)
         acceptance_probability = torch.min(torch.Tensor([1,torch.exp(energy_old-energy_new)*torch.exp(w_o_q-w_o_n)]))
-
+        print(acceptance_probability)
         u = random.uniform(0,1)
         if u<=acceptance_probability:
             tokens = token_from_mlm_conditional
@@ -106,7 +106,7 @@ class MetropolisSampler(Sampler):
             tokens = masked_tokens.clone()
             predictions.append(self.untokenize_sequence(masked_tokens))
 
-    
+        print(predictions)
         return predictions, {}
 
 
