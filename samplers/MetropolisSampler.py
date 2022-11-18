@@ -71,7 +71,7 @@ class MetropolisSampler(Sampler):
         if u<=acceptance_probability:
             tokens = token_from_mlm_conditional
         else:
-            tokens = pre_masked
+            tokens = masked_tokens
         
         return tokens
         
