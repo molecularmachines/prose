@@ -58,10 +58,9 @@ class MetropolisSampler(Sampler):
             results = self.model(masked_tokens, repr_layers=[33], return_contacts=False)
         
         logits = results['logits']
-        print(logits.shape)
         allowed_aa = [self.alphabet.tok_to_idx[k] for k in 'ACDEFGHIKLMNPQRSTVY']
         disallowed_aa = [i for i in range(33) if i not in allowed_aa]
-        logits[:,disallowed_aa]=-float('Inf')
+        logits[:,:,disallowed_aa]=-float('Inf')
 
         mlm_conditional = torch.distributions.Categorical(logits=logits)
         w_o_q = mlm_conditional.log_prob(masked_tokens)[:,pos]
