@@ -103,7 +103,8 @@ class MetropolisSampler(Sampler):
             masked_tokens = new_sequence_tokens.clone()
             tokens = masked_tokens.clone()
             predictions.append(self.untokenize_sequence(masked_tokens))
-# 
+#       
+        print(predictions)
         return predictions, {}
 
 
