@@ -102,8 +102,7 @@ class MetropolisSampler(Sampler):
             masked_tokens = tokens.clone()
             random_position = random.choice(range(0,num_tokens-1))
             e_o = self.compute_sequence_energy(masked_tokens)
-            new_sequence_tokens = self.propose_new_sequence(masked_tokens,random_position+1,e_o)
-            masked_tokens = new_sequence_tokens
+            masked_tokens = self.propose_new_sequence(masked_tokens,random_position+1,e_o)
             tokens = masked_tokens.clone()
             predictions.append(self.untokenize_sequence(masked_tokens))
 
