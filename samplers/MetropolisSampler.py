@@ -55,9 +55,10 @@ class MetropolisSampler(Sampler):
             results = self.model(masked_tokens, repr_layers=[33], return_contacts=False)
         
         logits = results['logits']
+
         allowed_aa = [self.alphabet.tok_to_idx[k] for k in 'ACDEFGHIKLMNPQRSTVY']
         disallowed_aa = [i for i in range(33) if i not in allowed_aa]
-        logits[:,:,disallowed_aa]=-float('Inf')
+        # logits[:,:,disallowed_aa]=-float('Inf')
         
         mlm_conditional = torch.distributions.Categorical(logits=logits)
         w_o_q = mlm_conditional.log_prob(masked_tokens)[:,pos]
@@ -65,11 +66,13 @@ class MetropolisSampler(Sampler):
         w_o_n = mlm_conditional.log_prob(token_from_mlm_conditional)[:,pos]
         energy_new = self.compute_sequence_energy(token_from_mlm_conditional)
         acceptance_probability = torch.min(torch.Tensor([1,torch.exp(energy_old-energy_new)*torch.exp(w_o_q-w_o_n)]))
-        print(acceptance_probability)
+        
         u = random.uniform(0,1)
         if u<=acceptance_probability:
+            print("accepted")
             tokens = token_from_mlm_conditional
         else:
+            print("rejected")
             tokens = masked_tokens.clone()
         
         return tokens
