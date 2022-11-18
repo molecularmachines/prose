@@ -102,8 +102,7 @@ class MetropolisSampler(Sampler):
             new_sequence_tokens = self.propose_new_sequence(masked_tokens,random_position+1,e_o)
             masked_tokens = new_sequence_tokens.clone()
             tokens = masked_tokens.clone()
-            if "<" not in self.untokenize_sequence(masked_tokens):
-                predictions.append(self.untokenize_sequence(masked_tokens))
+            predictions.append(self.untokenize_sequence(masked_tokens))
 
         print(predictions)
         return predictions, {}
