@@ -63,7 +63,7 @@ class MetropolisSampler(Sampler):
         else:
             tokens = masked_tokens.clone()
 
-        return tokens
+        return tokens[:,pos]
         
     def step(self,sequences):
 
