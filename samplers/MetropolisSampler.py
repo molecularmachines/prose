@@ -41,6 +41,13 @@ class MetropolisSampler(Sampler):
                 sequence_energy = sequence_energy+sum_post_softmax[:,idx]
         return sequence_energy
 
+    def untokenize_sequence(self,tokens):
+      """
+      Removes <cls and <eos> tokens
+      """
+      untokens = [self.alphabet.all_toks[i.cpu().item()] for i in tokens.squeeze()]
+      return "".join(untokens[1:len(untokens)-1])
+
     def propose_new_sequence(self,masked_tokens,pos,energy_old):
         #Propose a new sequence - sequentially first
         list_of_available_tokens = self.alphabet.tok_to_idx
