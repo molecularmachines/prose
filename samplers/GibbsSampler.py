@@ -105,7 +105,8 @@ class GibbsSampler(Sampler):
               new_sequence_tokens = self.propose_new_sequence(masked_tokens,pos=select_position+1)
               masked_tokens[:,select_position+1] = new_sequence_tokens[0]
               tokens = masked_tokens.clone()
-              predictions.append(self.untokenize_sequence(masked_tokens))
+              if "<" not in self.untokenize_sequence(masked_tokens):
+                predictions.append(self.untokenize_sequence(masked_tokens))
 
-    
+        print(predictions)
         return predictions, {}
