@@ -71,7 +71,7 @@ class MetropolisSampler(Sampler):
         if u<=acceptance_probability:
             tokens = token_from_mlm_conditional
         else:
-            tokens = masked_tokens
+            tokens = None
         
         return tokens
         
@@ -90,21 +90,23 @@ class MetropolisSampler(Sampler):
         with torch.no_grad():
             results = self.model(seed_tokens, repr_layers=[33], return_contacts=False)
 
-        if self.sampling_order == 'random':
+        if self.sampling_order == 'next':
           #Next token sampler - First token is a CLS token so will ignore that one
           tokens = seed_tokens.clone() #copy the seed tokens
           num_tokens = tokens.shape[1] 
-          for i in range(0,self.block_size):
+          for i in range(0,num_tokens-1):
             masked_tokens = tokens.clone()
             e_o = self.compute_sequence_energy(masked_tokens)
-            random_position = random.choice(range(0,num_tokens-1))
-            masked_tokens[:,random_position+1] = self.mask_token_id
-            new_sequence_tokens = self.propose_new_sequence(masked_tokens,random_position+1,e_o)
-            masked_tokens = new_sequence_tokens.clone()
+            masked_tokens[:,i+1] = self.mask_token_id
+            new_sequence_tokens = self.propose_new_sequence(masked_tokens,i+1,e_o)
+            if new_sequence_tokens is None:
+                masked_tokens = tokens.clone()
+            else:
+                masked_tokens = new_sequence_tokens.clone()
             tokens = masked_tokens.clone()
             predictions.append(self.untokenize_sequence(masked_tokens))
 
-        print(predictions)
+      
         return predictions, {}
 
 

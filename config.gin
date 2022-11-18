@@ -33,5 +33,5 @@ GibbsSampler.sampling_order = 'random'
 MetropolisSampler.block_size = 5
 MetropolisSampler.start_at = 0
 MetropolisSampler.temp = 1.0
-MetropolisSampler.sampling_order = 'random'
+MetropolisSampler.sampling_order = 'next'
 MetropolisSampler.energy_type = 'raw'
