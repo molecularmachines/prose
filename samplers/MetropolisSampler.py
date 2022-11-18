@@ -58,7 +58,7 @@ class MetropolisSampler(Sampler):
 
         allowed_aa = [self.alphabet.tok_to_idx[k] for k in 'ACDEFGHIKLMNPQRSTVY']
         disallowed_aa = [i for i in range(33) if i not in allowed_aa]
-        logits[:,:,disallowed_aa]=-float('Inf')
+        # logits[:,:,disallowed_aa]=-float('Inf')
         
         mlm_conditional = torch.distributions.Categorical(logits=logits)
         w_o_q = mlm_conditional.log_prob(masked_tokens)[:,pos]
@@ -90,8 +90,6 @@ class MetropolisSampler(Sampler):
         with torch.no_grad():
             results = self.model(seed_tokens, repr_layers=[33], return_contacts=False)
 
-        tokens = seed_tokens.clone()
-
         if self.sampling_order == 'random':
           #Next token sampler - First token is a CLS token so will ignore that one
           tokens = seed_tokens.clone() #copy the seed tokens
@@ -100,13 +98,12 @@ class MetropolisSampler(Sampler):
             masked_tokens = tokens.clone()
             e_o = self.compute_sequence_energy(masked_tokens)
             random_position = random.choice(range(0,num_tokens-1))
-            pre_masked = masked_tokens.clone()
             masked_tokens[:,random_position+1] = self.mask_token_id
-            masked_tokens = self.propose_new_sequence(masked_tokens,pre_masked,random_position+1,e_o)
+            new_sequence_tokens = self.propose_new_sequence(masked_tokens,tokens,random_position+1,e_o)
+            masked_tokens = new_sequence_tokens.clone()
             tokens = masked_tokens.clone()
             predictions.append(self.untokenize_sequence(masked_tokens))
-
-        print(predictions)
+# 
         return predictions, {}
 
 
