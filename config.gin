@@ -34,3 +34,4 @@ MetropolisSampler.block_size = 5
 MetropolisSampler.start_at = 0
 MetropolisSampler.temp = 1.0
 MetropolisSampler.sampling_order = 'random'
+MetropolisSampler.energy_type = 'raw'

@@ -8,16 +8,17 @@ from samplers.Sampler import Sampler
 @gin.configurable
 class MetropolisSampler(Sampler):
 
-    def __init__(self, model, alphabet, block_size: int = gin.REQUIRED,start_at: int = gin.REQUIRED, temp: float = gin.REQUIRED,sampling_order:str=gin.REQUIRED):
+    def __init__(self, model, alphabet, block_size: int = gin.REQUIRED,start_at: int = gin.REQUIRED, temp: float = gin.REQUIRED,energy_type:str=gin.REQUIRED,sampling_order:str=gin.REQUIRED):
         super().__init__(model, alphabet)
 
         self.mask_token_id = self.alphabet.tok_to_idx['<mask>']
         self.block_size = block_size
+        self.energy_type = energy_type
         self.temp = temp
         self.start_at = start_at
         self.sampling_order = sampling_order
         
-    def compute_sequence_energy(self,tokens,energy_type='raw'):
+    def compute_sequence_energy(self,tokens):
         sequence_energy = 0
         sequence_length_with_end_tokens = len(tokens[0])-1
         #skip first and last token
@@ -33,7 +34,7 @@ class MetropolisSampler(Sampler):
               sum_logits = torch.sum(logits,2)
               sum_post_softmax = torch.sum(logits_post_softmax,2)
               # print(sum_logits,"sum")
-              if energy_type == 'raw':
+              if self.energy_type:
                 sequence_energy = sequence_energy+sum_logits[:,idx]
               else:
                 #defaulting to local normalized
@@ -88,7 +89,7 @@ class MetropolisSampler(Sampler):
           for i in range(0,self.block_size):
             masked_tokens = tokens.clone()
             random_position = random.choice(range(0,num_tokens-1))
-            e_o = self.compute_sequence_energy(masked_tokens,energy_type='raw')
+            e_o = self.compute_sequence_energy(masked_tokens)
             new_sequence_tokens = self.propose_new_sequence(masked_tokens,random_position+1,e_o)
             masked_tokens[:,random_position+1] = new_sequence_tokens[0]
             tokens = masked_tokens.clone()
