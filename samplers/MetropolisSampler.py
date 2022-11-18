@@ -97,9 +97,10 @@ class MetropolisSampler(Sampler):
           num_tokens = tokens.shape[1] 
           for i in range(0,self.block_size):
             masked_tokens = tokens.clone()
-            random_position = random.choice(range(0,num_tokens-1))
             e_o = self.compute_sequence_energy(masked_tokens)
-            masked_tokens = self.propose_new_sequence(masked_tokens,random_position+1,e_o)
+            random_position = random.choice(range(0,num_tokens-1))
+            masked_tokens[:,random_position+1] = self.mask_token_id
+            masked_tokens = self.propose_new_sequence(masked_tokens,e_o)
             tokens = masked_tokens.clone()
             predictions.append(self.untokenize_sequence(masked_tokens))
 
