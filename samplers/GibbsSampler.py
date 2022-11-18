@@ -37,8 +37,9 @@ class GibbsSampler(Sampler):
           logits = logits/temp
 
         allowed_aa = [self.alphabet.tok_to_idx[k] for k in 'ACDEFGHIKLMNPQRSTVY']
-        disallowed_aa = [i for i in range(34) if i not in allowed_aa]
-        logits[:,disallowed_aa]=float('-inf')
+        disallowed_aa = [i for i in range(33) if i not in allowed_aa]
+        print(disallowed_aa)
+        logits[:,disallowed_aa]=-float('Inf')
         print(logits,"logits")
         dist = torch.distributions.categorical.Categorical(logits=logits)
         #accept the next best logit if the logit being predicted is actually not a allowed_aa
