@@ -74,8 +74,8 @@ class MetropolisSampler(Sampler):
             tokens = token_from_mlm_conditional
         else:
             tokens = masked_tokens.clone()
-        print(pos,"SSS")
-        return tokens[:,pos]
+    
+        return tokens
         
     def step(self,sequences):
 
