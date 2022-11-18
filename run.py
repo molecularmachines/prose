@@ -23,7 +23,8 @@ from samplers import (
     VanillaSampler,
     MetropolisHastingsSampler, 
     NucleusSampler,
-    GibbsSampler
+    GibbsSampler,
+    MetropolisSampler
 )
 
 

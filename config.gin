@@ -3,7 +3,7 @@ run.repo = '~/expts/prose/'
 
 run.start_fasta = './examples/2HBB.fasta'
 
-run.sampler = @GibbsSampler
+run.sampler = @MetropolisSampler
 run.n_steps = 500
 run.fold_every = 20
 
@@ -28,3 +28,9 @@ GibbsSampler.block_size = 5
 GibbsSampler.start_at = 0
 GibbsSampler.temp = 1.0
 GibbsSampler.sampling_order = 'random'
+
+# config for Gibbs
+MetropolisSampler.block_size = 5
+MetropolisSampler.start_at = 0
+MetropolisSampler.temp = 1.0
+MetropolisSampler.sampling_order = 'random'
