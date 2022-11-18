@@ -38,9 +38,7 @@ class GibbsSampler(Sampler):
 
         allowed_aa = [self.alphabet.tok_to_idx[k] for k in 'ACDEFGHIKLMNPQRSTVY']
         disallowed_aa = [i for i in range(33) if i not in allowed_aa]
-        print(disallowed_aa)
         logits[:,disallowed_aa]=-float('Inf')
-        print(logits,"logits")
         dist = torch.distributions.categorical.Categorical(logits=logits)
         #accept the next best logit if the logit being predicted is actually not a allowed_aa
         new_tokens = dist.sample()
@@ -81,7 +79,7 @@ class GibbsSampler(Sampler):
               new_sequence_tokens = self.propose_new_sequence(masked_tokens,pos=i)
               masked_tokens[:,i] = new_sequence_tokens[0]
               tokens = masked_tokens.clone()
-              predictions.append(self.untokenize_sequence(tokens))
+              predictions.append(self.untokenize_sequence(masked_tokens))
 
         if self.sampling_order == 'random':
           #Next token sampler - First token is a CLS token so will ignore that one
@@ -90,15 +88,11 @@ class GibbsSampler(Sampler):
           for i in range(0,self.block_size):
               masked_tokens = tokens.clone()
               random_position = random.choice(range(0,num_tokens-1))
-              print(self.untokenize_sequence(masked_tokens))
               masked_tokens[:,random_position+1] = self.mask_token_id
-              print(masked_tokens[:,random_position+1],"gg")
               new_sequence_tokens = self.propose_new_sequence(masked_tokens,pos=random_position+1)
-              
               masked_tokens[:,random_position+i] = new_sequence_tokens[0]
               tokens = masked_tokens.clone()
-              print(masked_tokens[:,random_position+1])
-              predictions.append(self.untokenize_sequence(tokens))
+              predictions.append(self.untokenize_sequence(masked_tokens))
 
         elif self.sampling_order == 'block':
           #Next token sampler - First token is a CLS token so will ignore that one
@@ -107,14 +101,11 @@ class GibbsSampler(Sampler):
           for i in range(self.start_at,self.block_size):
               masked_tokens = tokens.clone() #make a copy
               select_position = self.start_at+i
-              print(self.untokenize_sequence(masked_tokens))
               masked_tokens[:,select_position+1] = self.mask_token_id
-              print(self.untokenize_sequence(masked_tokens))
               new_sequence_tokens = self.propose_new_sequence(masked_tokens,pos=select_position+1)
-             
               masked_tokens[:,select_position+1] = new_sequence_tokens[0]
               tokens = masked_tokens.clone()
-              predictions.append(self.untokenize_sequence(tokens))
+              predictions.append(self.untokenize_sequence(masked_tokens))
 
         print(predictions)
         return predictions, {}
