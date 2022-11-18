@@ -42,7 +42,7 @@ class GibbsSampler(Sampler):
         dist = torch.distributions.categorical.Categorical(logits=logits)
         #accept the next best logit if the logit being predicted is actually not a allowed_aa
         new_tokens = dist.sample()
-
+        
         return new_tokens
 
     def step(self, sequences):
@@ -90,8 +90,8 @@ class GibbsSampler(Sampler):
               random_position = random.choice(range(0,num_tokens-1))
               masked_tokens[:,random_position+1] = self.mask_token_id
               new_sequence_tokens = self.propose_new_sequence(masked_tokens,pos=random_position+1)
-              masked_tokens[:,random_position+i] = new_sequence_tokens[0]
-              tokens = masked_tokens.clone()
+              masked_tokens[:,random_position+1] = new_sequence_tokens[0]
+              tokens = masked_tokens.clone())
               predictions.append(self.untokenize_sequence(masked_tokens))
 
         elif self.sampling_order == 'block':
@@ -107,5 +107,5 @@ class GibbsSampler(Sampler):
               tokens = masked_tokens.clone()
               predictions.append(self.untokenize_sequence(masked_tokens))
 
-        print(predictions)
+    
         return predictions, {}
