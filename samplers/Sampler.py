@@ -41,5 +41,5 @@ class Sampler:
     def _mask_sequence_randomly(sequence: str, k: int) -> str:
         seq_len = len(sequence)
         assert k < seq_len, f"masking variable ({k}) must be smaller than sequence length ({seq_len})"
-        indices = random.sample([i for i in range(seq_len)], k)
+        indices = random.sample(range(seq_len), k)
         return Sampler._mask_sequence(sequence, indices)
