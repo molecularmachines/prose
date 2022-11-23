@@ -1,0 +1,37 @@
+run.experiment = "basic"
+run.repo = '~/expts/prose/'
+
+run.start_fasta = './examples/2HBB.fasta'
+
+run.sampler = @MetropolisSampler
+run.n_steps = 500
+run.fold_every = 20
+
+# config for Vanilla
+VanillaSampler.k = 1
+
+# config for MH
+MetropolisHastingsSampler.k = 1
+MetropolisHastingsSampler.temp = 1.0
+
+
+# config for Nucleus
+NucleusSampler.block_size = 1
+NucleusSampler.start_at = 0
+NucleusSampler.temp = 1.0
+NucleusSampler.top_p = 0.5 
+NucleusSampler.sampling_order = 'random'
+
+
+# config for Gibbs
+GibbsSampler.block_size = 5
+GibbsSampler.start_at = 0
+GibbsSampler.temp = 1.0
+GibbsSampler.sampling_order = 'random'
+
+# config for Gibbs
+MetropolisSampler.block_size = 5
+MetropolisSampler.start_at = 0
+MetropolisSampler.temp = 1.0
+MetropolisSampler.sampling_order = 'next'
+MetropolisSampler.energy_type = 'raw'
