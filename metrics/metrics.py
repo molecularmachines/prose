@@ -12,12 +12,14 @@ def perplexity(seq: str, sampler: Sampler) -> float:
     """
     Calculates the perplexity of seq given a model and alphabet.
     """
-    seq = [('1', seq)]
-    batch_labels, batch_str, batch_tokens = sampler.batch_converter(seq)
+    data = [('0', seq)]+[(str(i + 1), sampler._mask_sequence(seq,[i])) for i in range(len(seq))]
+    batch_labels, batch_str, batch_tokens = sampler.batch_converter(data)
     batch_tokens = batch_tokens.to(sampler.device)
     with torch.no_grad():
             results = sampler.model(batch_tokens, repr_layers=[33], return_contacts=False)
     logits = results["logits"]
-    loss = torch.nn.CrossEntropyLoss()
-    return torch.exp(loss(logits[0], batch_tokens[0])).item()
+    ppl = torch.tensor(0.0).to(sampler.device)
+    for i in range(len(seq)):
+        ppl += logits[i+1,i+1,batch_tokens[0,i+1]]
+    return ppl / len(seq)
     
