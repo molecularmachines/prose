@@ -16,7 +16,7 @@ from aim import Text, Figure
 from typing import List, Tuple
 from pathlib import Path
 import numpy as np
-from metrics.metrics import hamming_distance
+from metrics.metrics import hamming_distance, perplexity
 from utils import gin_config_to_dict, load_fasta_file, save_fasta_file
 
 from samplers import (
@@ -86,6 +86,9 @@ def run(
         hamming = hamming_distance(res_sequences[0][0], output_sequences[0])
         register.track(hamming, name='hamming_distance', step=step)
 
+        ppl = perplexity(output_sequences[0], sampler)
+        register.track(ppl, name='perplexity', step=step)
+        
         if step % fold_every == 0:
             # construct fasta file for folding
             step_fasta_file_name = f"{sampler}_{step+1}.fasta"
