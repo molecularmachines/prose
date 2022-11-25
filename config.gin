@@ -29,7 +29,7 @@ GibbsSampler.start_at = 0
 GibbsSampler.temp = 1.0
 GibbsSampler.sampling_order = 'random'
 
-# config for Gibbs
+# config for Metropolis
 MetropolisSampler.block_size = 5
 MetropolisSampler.start_at = 0
 MetropolisSampler.temp = 1.0

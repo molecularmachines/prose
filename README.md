@@ -18,7 +18,7 @@ $ python run.py
 
 To run with specific configuration: 
 ```sh
-$ python run.py --config.gin
+$ python run.py --config config.gin
 ```
 
 ### Run Configuration
