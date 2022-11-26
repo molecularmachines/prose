@@ -59,7 +59,7 @@ def run(
         sequences, names = load_fasta_file(fasta_file)
 
         # set up Aim run where we keep track of metrics
-        exp = f"experiment_{exp_i}"
+        exp = f"{experiment}_{exp_i}"
         register = Register(experiment=exp, repo=repo)
         register["hparams"] = gin_config_to_dict(gin.config._OPERATIVE_CONFIG)
 
