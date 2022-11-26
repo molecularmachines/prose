@@ -54,13 +54,14 @@ def run(
     # run all experiments in FASTA directory
     fasta_dir = Path(fasta_dir).expanduser()
     fasta_files = [f for f in os.listdir(fasta_dir) if '.fasta' in f]
-    for f in fasta_files:
+    for exp_i, f in enumerate(fasta_files):
         fasta_file = os.path.join(fasta_dir, f)
         logging.info(f"Running experiment for {fasta_file}")
         sequences, names = load_fasta_file(fasta_file)
 
         # set up Aim run where we keep track of metrics
-        register = Register(experiment=experiment, repo=repo)
+        exp = f"experiment_{exp_i}"
+        register = Register(experiment=exp, repo=repo)
         register["hparams"] = gin_config_to_dict(gin.config._OPERATIVE_CONFIG)
 
         # save files in the same path as Aim, using the hash as dir
