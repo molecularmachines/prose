@@ -13,7 +13,6 @@ from aim import Text
 from pathlib import Path
 from metrics.metrics import hamming_distance, perplexity
 from utils import gin_config_to_dict, load_fasta_file, save_fasta_file
-from typing import List
 
 from samplers import (
     VanillaSampler,
@@ -92,9 +91,9 @@ def run(
 
             if step % fold_every == 0:
                 # construct fasta file for folding
-                step_fasta_file_name = f"{sampler}_{step+1}.fasta"
+                step_fasta_file_name = f"{str(sampler)}_{step+1}.fasta"
                 step_fasta_file_path = os.path.join(register_dir, step_fasta_file_name)
-                step_names = [f"{name}|{sampler}|STEP {step+1}" for name in names]
+                step_names = [f"{name}|{str(sampler)}|STEP {step+1}" for name in names]
                 save_fasta_file(output_sequences, step_names, step_fasta_file_path)
 
                 # fold fasta with OmegaFold
@@ -108,7 +107,7 @@ def run(
             # next step in trajectory from current step
             sequences = output_sequences
 
-        return register
+    return register
 
 
 def main(argv):
