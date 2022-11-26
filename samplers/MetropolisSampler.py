@@ -18,6 +18,9 @@ class MetropolisSampler(Sampler):
         self.start_at = start_at
         self.sampling_order = sampling_order
         
+    def __str__(self):
+        return "Metropolis"
+
     def compute_sequence_energy(self,tokens):
         sequence_energy = 0
         sequence_length_with_end_tokens = len(tokens[0])-1

@@ -39,7 +39,7 @@ def run(
     experiment: str = gin.REQUIRED,
     repo: str = gin.REQUIRED,
 ):
-    logging.info(f"sampling with : {sampler}")
+    logging.info(f"sampling with : {str(sampler)}")
     repo = str(Path(repo).expanduser())
 
     # load ESM to memory

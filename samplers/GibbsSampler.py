@@ -20,6 +20,9 @@ class GibbsSampler(Sampler):
         self.start_at = start_at
         self.sampling_order = sampling_order
 
+    def __str___(self):
+        return "Gibbs"
+
     def untokenize_sequence(self,tokens):
       """
       Removes <cls and <eos> tokens
