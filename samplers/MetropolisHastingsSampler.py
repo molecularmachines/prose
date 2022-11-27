@@ -1,5 +1,6 @@
 import gin
 import torch
+import random
 from tqdm import tqdm
 from einops import repeat, rearrange
 
@@ -43,13 +44,11 @@ class MetropolisHastingsSampler(Sampler):
 
         return total_energy
 
-    def propose_new_sequence(self, batch_tokens, k=3, temp=1.0):
+    def propose_new_sequence(self, batch_tokens, mask_indices, k=3, temp=1.0):
         batch_size, sequence_length = batch_tokens.shape[:2]
-        choice = torch.stack(
-            [torch.randperm(sequence_length)[:k] for _ in range(batch_size)]
-        ).to(self.device)
+        choices = [torch.tensor(random.sample(mask_indices, k=len(mask_indices))[:k]) for _ in range(batch_size)]
+        choice = torch.stack(choices).to(self.device)
 
-        num_tokens = len(self.alphabet.tok_to_idx)
         selector_buffer = rearrange(
             torch.arange(0, sequence_length).to(self.device), "s -> () s ()"
         )
@@ -96,6 +95,7 @@ class MetropolisHastingsSampler(Sampler):
         tokens = tokens.to(self.device)
 
         batch_size, seq_len = tokens.shape[:2]
+        mask_indices = self.get_mask_indices(sequences[0])
         # compute current sequence_energy
         if current_energy is None:
             current_energy = self.compute_sequence_energy(tokens, temp=temp)
@@ -108,7 +108,7 @@ class MetropolisHastingsSampler(Sampler):
 
         while not accepted.any():
             new_tokens, (forward, backward) = self.propose_new_sequence(
-                tokens[~accepted], temp=temp, k=k
+                tokens[~accepted], mask_indices, temp=temp, k=k
             )
 
             proposal_energy = self.compute_sequence_energy(new_tokens, temp=temp)

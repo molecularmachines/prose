@@ -3,7 +3,7 @@ run.repo = '~/prose/expts/peptides/'
 
 run.fasta_dir = '~/prose/peptides/experiments'
 
-run.sampler = @GibbsSampler
+run.sampler = @MetropolisHastingsSampler
 run.n_steps = 500
 run.fold_every = 20
 
