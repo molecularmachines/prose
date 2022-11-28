@@ -3,7 +3,7 @@ run.repo = '~/expts/prose/'
 
 run.start_fasta = './examples/2HBB.fasta'
 
-run.sampler = @MetropolisSampler
+run.sampler_class = @MetropolisSampler
 run.n_steps = 500
 run.fold_every = 20
 

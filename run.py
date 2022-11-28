@@ -32,13 +32,12 @@ flags.DEFINE_string("config", CONFIG_FILE, "Path to config json file")
 @gin.configurable
 def run(
     fasta_dir: str,
-    sampler: Sampler,
+    sampler_class: Sampler,
     n_steps: int = gin.REQUIRED,
     fold_every: int = gin.REQUIRED,
     experiment: str = gin.REQUIRED,
     repo: str = gin.REQUIRED,
 ):
-    logging.info(f"sampling with : {str(sampler)}")
     repo = str(Path(repo).expanduser())
 
     # load ESM to memory
@@ -64,7 +63,8 @@ def run(
 
     for f in fasta_files:
         context = {'fasta': f}
-        sampler = sampler(esm_model, alphabet)
+        sampler = sampler_class(esm_model, alphabet)
+        logging.info(f"sampling with : {sampler}")
         fasta_file = os.path.join(fasta_dir, f)
         logging.info(f"Running experiment for {fasta_file}")
         sequences, names = load_fasta_file(fasta_file)
@@ -92,9 +92,9 @@ def run(
 
             if step % fold_every == 0:
                 # construct fasta file for folding
-                step_fasta_file_name = f"{str(sampler)}_{step+1}.fasta"
+                step_fasta_file_name = f"{sampler}_{step+1}.fasta"
                 step_fasta_file_path = os.path.join(register_dir, step_fasta_file_name)
-                step_names = [f"{name}|{str(sampler)}|STEP {step+1}" for name in names]
+                step_names = [f"{name}|{sampler}|STEP {step+1}" for name in names]
                 save_fasta_file(output_sequences, step_names, step_fasta_file_path)
 
                 # fold fasta with OmegaFold
@@ -113,10 +113,8 @@ def run(
 
 def main(argv):
     del argv  # Unused.
-
-    # parse config file
     gin.parse_config_file(FLAGS.config)
-    register = run()
+    run()
 
 
 if __name__ == "__main__":
