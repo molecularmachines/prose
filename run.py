@@ -14,6 +14,14 @@ from pathlib import Path
 from metrics.metrics import hamming_distance, perplexity
 from utils import gin_config_to_dict, load_fasta_file, save_fasta_file
 
+from samplers import (
+    VanillaSampler,
+    NucleusSampler,
+    GibbsSampler,
+    MetropolisHastingsSampler,
+    MetropolisSampler,
+)
+
 CONFIG_FILE = "config.gin"
 
 # experiment program run arguments
