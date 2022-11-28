@@ -55,8 +55,8 @@ class Sampler:
         return start_segment + end_segment
 
     @staticmethod
-    def _mask_sequence_randomly(sequence: str, k: int) -> str:
+    def _mask_sequence_randomly(sequence: str, k: int, mask_indices) -> str:
         seq_len = len(sequence)
         assert k < seq_len, f"masking variable ({k}) must be smaller than sequence length ({seq_len})"
-        indices = random.sample(range(seq_len), k)
+        indices = random.sample(mask_indices, k)
         return Sampler._mask_sequence(sequence, indices)
