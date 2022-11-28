@@ -18,7 +18,7 @@ class MetropolisHastingsSampler(Sampler):
         self.temp = temp
 
     def __str__(self):
-        return f"metropolis-hastings-sampler[k={self.k},temp={self.temp}]"
+        return f"metropolis-hastings_k{self.k}_temp{self.temp}"
 
     def compute_sequence_energy(self, batch_tokens, method="raw", temp=1.0):
         batch_size, sequence_length = batch_tokens.shape[:2]
@@ -133,7 +133,6 @@ class MetropolisHastingsSampler(Sampler):
             tokens = [self.alphabet.all_toks[i.cpu().item()] for i in tokens]
             predictions.append("".join(tokens[1:-1]))
 
-        print(predictions)
         self.current_energy = accepted_energies
 
         return predictions, {"trials": trials, "energy": accepted_energies}

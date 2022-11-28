@@ -21,7 +21,7 @@ class GibbsSampler(Sampler):
         self.sampling_order = sampling_order
 
     def __str__(self):
-        return "Gibbs"
+        return "gibbs_{self.sampling_order}_temp{self.temp}"
 
     def untokenize_sequence(self,tokens):
       """

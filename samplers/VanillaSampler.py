@@ -11,7 +11,7 @@ class VanillaSampler(Sampler):
         self.k = k
 
     def __str__(self):
-        return f"vanilla-sampler[k={self.k}]"
+        return f"vanilla-sampler_k{self.k}"
 
     def step(self, sequences):
         # data in correct ESM format
