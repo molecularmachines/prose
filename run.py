@@ -14,14 +14,6 @@ from pathlib import Path
 from metrics.metrics import hamming_distance, perplexity
 from utils import gin_config_to_dict, load_fasta_file, save_fasta_file
 
-from samplers import (
-    VanillaSampler,
-    MetropolisHastingsSampler,
-    NucleusSampler,
-    GibbsSampler,
-    MetropolisSampler
-)
-
 CONFIG_FILE = "config.gin"
 
 # experiment program run arguments
@@ -53,20 +45,21 @@ def run(
     # run all experiments in FASTA directory
     fasta_dir = Path(fasta_dir).expanduser()
     fasta_files = [f for f in os.listdir(fasta_dir) if '.fasta' in f]
-    for exp_i, f in enumerate(fasta_files):
+
+    # set up Aim run where we keep track of metrics
+    register = Register(experiment=experiment, repo=repo)
+    register["hparams"] = gin_config_to_dict(gin.config._OPERATIVE_CONFIG)
+
+    # save files in the same path as Aim, using the hash as dir
+    register_dir = str(Path(repo) / register.hash)
+    os.makedirs(register_dir, exist_ok=False)
+    logging.info(f'Saving Structures to {register_dir}')
+
+    for f in fasta_files:
+        context = {'fasta': f}
         fasta_file = os.path.join(fasta_dir, f)
         logging.info(f"Running experiment for {fasta_file}")
         sequences, names = load_fasta_file(fasta_file)
-
-        # set up Aim run where we keep track of metrics
-        exp = f"{experiment}_{exp_i}"
-        register = Register(experiment=exp, repo=repo)
-        register["hparams"] = gin_config_to_dict(gin.config._OPERATIVE_CONFIG)
-
-        # save files in the same path as Aim, using the hash as dir
-        register_dir = str(Path(repo) / register.hash)
-        os.makedirs(register_dir, exist_ok=False)
-        logging.info(f'Saving Structures to {register_dir}')
 
         res_sequences = []
 
@@ -77,17 +70,17 @@ def run(
             res_sequences.append(output_sequences)
 
             for key, value in sample_metrics.items():
-                register.track(value, name=key, step=step)
+                register.track(value, name=key, step=step, context=context)
             register.track(
-                Text(output_sequences[0]), name="sequence", step=step)
+                Text(output_sequences[0]), name="sequence", step=step, context=context)
 
             # calculate hamming distance
             hamming = hamming_distance(res_sequences[0][0], output_sequences[0])
-            register.track(hamming, name='hamming_distance', step=step)
+            register.track(hamming, name='hamming_distance', step=step, context=context)
 
             # calculate perplexity
             ppl = perplexity(output_sequences[0], sampler)
-            register.track(ppl, name='perplexity', step=step)
+            register.track(ppl, name='perplexity', step=step, context=context)
 
             if step % fold_every == 0:
                 # construct fasta file for folding
@@ -101,7 +94,7 @@ def run(
                 fold_out = fold(folder, step_fasta_file_path, register_dir)
                 confidence = [x["confidence_overall"] for x in fold_out]
                 register.track(
-                    sum(confidence) / len(confidence), name="mean_confidence", step=step
+                    sum(confidence) / len(confidence), name="mean_confidence", step=step, context=context
                 )
 
             # next step in trajectory from current step
