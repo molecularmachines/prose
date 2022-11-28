@@ -30,4 +30,4 @@ def perplexity(seq: str, sampler: Sampler) -> float:
                                                         return_contacts=False)["logits"], dim=-1)
         ppl += log_probs[0, i, batch_tokens[0, i]]
 
-    return torch.exp(-ppl / len(seq))
+    return torch.exp(-ppl / len(seq))  
