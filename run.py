@@ -44,7 +44,6 @@ def run(
     # load ESM to memory
     logging.info("loading ESM2")
     esm_model, alphabet = esm.pretrained.esm2_t33_650M_UR50D()
-    sampler = sampler(esm_model, alphabet)
 
     # load omegafold to memory
     logging.info("loading Omegafold")
@@ -65,6 +64,7 @@ def run(
 
     for f in fasta_files:
         context = {'fasta': f}
+        sampler = sampler(esm_model, alphabet)
         fasta_file = os.path.join(fasta_dir, f)
         logging.info(f"Running experiment for {fasta_file}")
         sequences, names = load_fasta_file(fasta_file)
