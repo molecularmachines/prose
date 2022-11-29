@@ -29,7 +29,7 @@ class MetropolisHastingsSampler(Sampler):
         )
 
         total_energy = torch.zeros((batch_size,), device=self.device)
-        for index in tqdm(range(1, sequence_length)):
+        for index in tqdm(range(1, sequence_length - 1)):
             masked_tokens = batch_tokens.clone()
             masked_tokens[:, index] = self.MASK_TOKEN_IDX
             with torch.no_grad():
@@ -42,9 +42,10 @@ class MetropolisHastingsSampler(Sampler):
             )
             total_energy = total_energy + logits[token_selector]
 
-        return total_energy
+        return -total_energy
 
-    def propose_new_sequence(self, batch_tokens, mask_indices, k=3, temp=1.0):
+    def propose_new_sequence(self, batch_tokens, k=3, temp=1.0):
+
         batch_size, sequence_length = batch_tokens.shape[:2]
         choices = [torch.tensor(random.sample(mask_indices, k=len(mask_indices))[:k]) for _ in range(batch_size)]
         choice = torch.stack(choices).to(self.device)
@@ -91,7 +92,7 @@ class MetropolisHastingsSampler(Sampler):
         k = self.k
         temp = self.temp
         data = [(str(i + 1), sequences[i]) for i in range(len(sequences))]
-        _, __, tokens = self.batch_converter(data)
+        _, _, tokens = self.batch_converter(data)
         tokens = tokens.to(self.device)
 
         batch_size, seq_len = tokens.shape[:2]
@@ -112,12 +113,9 @@ class MetropolisHastingsSampler(Sampler):
             )
 
             proposal_energy = self.compute_sequence_energy(new_tokens, temp=temp)
-            acceptance_prob = torch.exp(
-                -(proposal_energy - current_energy) + backward.sum(-1) - forward.sum(-1)
-            )
-            acceptance_prob = torch.clamp(acceptance_prob, max=1)
-
-            u = torch.rand((new_tokens.shape[0],), device=self.device)
+            acceptance_prob = -(proposal_energy - current_energy) + backward.sum(-1) - forward.sum(-1)
+            acceptance_prob = torch.clamp(acceptance_prob, max=0)
+            u = torch.log(torch.rand((new_tokens.shape[0],), device=self.device))
 
             accepted_tokens[~accepted] = (
                 new_tokens * rearrange(u < acceptance_prob, "b -> b ()").long()
