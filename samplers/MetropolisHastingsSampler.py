@@ -44,7 +44,7 @@ class MetropolisHastingsSampler(Sampler):
 
         return -total_energy
 
-    def propose_new_sequence(self, batch_tokens, k=3, temp=1.0):
+    def propose_new_sequence(self, batch_tokens, mask_indices, k=3, temp=1.0):
 
         batch_size, sequence_length = batch_tokens.shape[:2]
         choices = [torch.tensor(random.sample(mask_indices, k=len(mask_indices))[:k]) for _ in range(batch_size)]
