@@ -17,8 +17,6 @@ import py3Dmol
 
 FLAGS = flags.FLAGS
 flags.DEFINE_string('repo', '~/expts/prose/', 'path to aim repository')
-# count = st_autorefresh(interval=1000, limit=100, key="fizzbuzzcounter")
-
 
 st.set_page_config(
     page_title='ProSE',
@@ -37,11 +35,10 @@ for run in all_runs.iter_runs():
     avail_hashes.append(run.run.hash)
 
 with st.sidebar:
-    selected = option_menu("ProSE", ["Analyze", 'Launch'], 
+    selected = option_menu("ProSE", ["Analyze", 'Launch'],
         icons=['clipboard', 'lightning-charge'], menu_icon="null", default_index=1)
 
 
-        
 col1, col2 = st.columns(2)
 
 with col1:
@@ -49,21 +46,23 @@ with col1:
     selected_hash = st.selectbox(label="Select Run", options=avail_hashes)
     run_dir = Path(repo_path) / selected_hash
     run = repo.get_run(selected_hash)
+    sequences = run.get_text_sequence(name='sequence', context=None)
 
-
-    system_metrics, metrics = [], []
+    system_metrics, structure_metrics, sequence_metrics = [], [], []
     for metric in run.metrics():
+        if metric.name.startswith('__'):
+            lst = system_metrics
+        elif metric.name.startswith('structure_'):
+            lst = structure_metrics
+        else:
+            lst = sequence_metrics
         value = metric.values.sparse_numpy()[1]
         tupl = (metric.name, value)
-        if metric.name.startswith('__'):
-            system_metrics.append(tupl)
-        else:
-            metrics.append(tupl) 
-
+        lst.append(tupl)
 
     def plot_metrics(metrics_list):
         for name, value in metrics_list:
-            with st.expander(name, expanded=True):    
+            with st.expander(name, expanded=True):
                 fig = go.Figure()
                 fig.add_trace(go.Scatter(y=value, name=name,
                                     line_shape='linear'))
@@ -75,36 +74,38 @@ with col1:
                 fig.update_xaxes(showgrid=True, gridwidth=1, gridcolor='LightGray')
                 fig.update_yaxes(showgrid=True, gridwidth=1, gridcolor='LightGray')
                 st.plotly_chart(fig)
-
-
-
-    tab1, tab2, tab3 = st.tabs(["Metrics", "System Metrics", "Weights"])
-
+    tab1, tab2, tab3, tab4 = st.tabs(["Sequence Metrics", "Structure Metrics", "System Metrics", "Sequences"])
+    with tab1:
+        plot_metrics(sequence_metrics)
+    with tab2:
+        plot_metrics(structure_metrics)
     with tab2:
         plot_metrics(system_metrics)
 
-    with tab1:
-        plot_metrics(metrics)
 
-
-with col2: 
+def structures_display():
     st.subheader('Structures', anchor=None)
-    for file_name in os.listdir(str(run_dir)):
+    structures_dir = run_dir / '_structures'
+    file_paths = []
+    for file_name in os.listdir(str(structures_dir)):
         if file_name.endswith(".pdb"):
-            step = file_name[file_name.rindex('|') + 1:file_name.index('.pdb')]
+            step_name = file_name[file_name.rindex('|') + 1:file_name.index('.pdb')]
+            step_number = int(step_name[4:])
+            file_paths.append((step_number, file_name))
+    file_paths = sorted(file_paths)
+    for step, file_name in file_paths:
+        sse_img_path = str((Path(structures_dir) / (file_name[:-4] + '.png')))
 
-            view = py3Dmol.view()
-            with open(str(run_dir / file_name)) as file:
-                system = "".join([x for x in file])
-                view.addModel(system)
-            view.setStyle({'model': -1}, {"cartoon": {'color': 'spectrum'}})
-            view.zoomTo()
-            view.setBackgroundColor(0x00000000, 0);
-            with st.expander(step, expanded=True):
-                st.components.v1.html(view._make_html(), height=500,width=500)
+        view = py3Dmol.view()
+        with open(str(structures_dir / file_name)) as file:
+            system = "".join([x for x in file])
+            view.addModel(system)
+        view.setStyle({'model': -1}, {"cartoon": {'color': 'spectrum'}})
+        view.zoomTo()
+        view.setBackgroundColor(0x00000000, 0);
+        with st.expander(f'step {step}', expanded=False):
+            st.components.v1.html(view._make_html(), height=500,width=500)
+            st.image(sse_img_path)
 
-
-
-
-
-
+with col2:
+    structures_display()

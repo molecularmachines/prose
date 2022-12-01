@@ -12,16 +12,18 @@ from samplers import Sampler
 from omegafold.__main__ import main as fold
 from omegafold.__main__ import model
 from aim import Run as Register
-from aim import Text, Figure
+from aim import Text, Figure, Image
 from typing import List, Tuple
 from pathlib import Path
 import numpy as np
 from metrics.metrics import hamming_distance, perplexity
 from utils import gin_config_to_dict, load_fasta_file, save_fasta_file
+from biotite.structure.io.pdb import PDBFile, get_structure
+from viz_utils import secondary_structure
 
 from samplers import (
     VanillaSampler,
-    MetropolisHastingsSampler, 
+    MetropolisHastingsSampler,
     NucleusSampler,
     GibbsSampler,
     MetropolisSampler
@@ -67,28 +69,31 @@ def run(
 
     # save files in the same path as Aim, using the hash as dir
     register_dir = str(Path(repo) / register.hash)
-    os.makedirs(register_dir, exist_ok=False)
-    logging.info(f'Saving Structures to {register_dir}') 
+    structure_dir = str(Path(register_dir) / '_structures')
+
+    os.makedirs(structure_dir, exist_ok=False)
+    logging.info(f'Saving Structures to {structure_dir}')
 
     res_sequences = []
+    trajectory = []
 
     # sample n times from each sampler
     for step in tqdm(range(n_steps)):
         # perform sampler forward
         output_sequences, sample_metrics = sampler.step(sequences)
         res_sequences.append(output_sequences)
-        
+
         for key, value in sample_metrics.items():
             register.track(value, name=key, step=step)
         register.track(
             Text(output_sequences[0]), name="sequence", step=step)
-        
+
         hamming = hamming_distance(res_sequences[0][0], output_sequences[0])
         register.track(hamming, name='hamming_distance', step=step)
 
         ppl = perplexity(output_sequences[0], sampler)
         register.track(ppl, name='perplexity', step=step)
-        
+
         if step % fold_every == 0:
             # construct fasta file for folding
             step_fasta_file_name = f"{sampler}_{step+1}.fasta"
@@ -98,11 +103,27 @@ def run(
 
             # fold fasta with OmegaFold
             logging.info(f"Folding step {step+1}/{n_steps}")
-            fold_out = fold(folder, step_fasta_file_path, register_dir)
+            fold_out = fold(folder, step_fasta_file_path, structure_dir)
             confidence = [x["confidence_overall"] for x in fold_out]
             register.track(
-                sum(confidence) / len(confidence), name="mean_confidence", step=step
+                sum(confidence) / len(confidence), name="structure_mean_confidence", step=step
             )
+
+            pdb_path = str((Path(structure_dir) / (step_names[0] + '.pdb')))
+            pdb_file = PDBFile.read(pdb_path)
+            atom_array = get_structure(pdb_file)
+
+            sse, fig = secondary_structure(atom_array)
+            img_path = str(Path(structure_dir) / (step_names[0] + '.png'))
+            fig.savefig(img_path)
+            register.track(Image(img_path), 'secondary_structure', step=step)
+
+            labels, counts = np.unique(sse, return_counts=True)
+            fracs = counts / sum(counts)
+            for (label, frac) in zip(labels, fracs):
+                register.track(frac, name=f'structure_fraction_{label}', step=step)
+
+
         # next step in trajectory from current step
         sequences = output_sequences
 
