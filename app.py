@@ -1,6 +1,4 @@
 import numpy as np
-import streamlit as st
-import pandas as pd
 import os
 from aim import Run, Repo
 
@@ -10,7 +8,11 @@ from pathlib import Path
 
 from stmol import showmol
 import plotly.graph_objects as go
+import pandas as pd
+
+import streamlit as st
 from streamlit_option_menu import option_menu
+from streamlit_searchbox import st_searchbox
 
 
 import py3Dmol
@@ -36,7 +38,7 @@ for run in all_runs.iter_runs():
 
 with st.sidebar:
     selected = option_menu("ProSE", ["Analyze", 'Launch'],
-        icons=['clipboard', 'lightning-charge'], menu_icon="null", default_index=1)
+        icons=['clipboard', 'lightning-charge'], menu_icon="null", default_index=0)
 
 
 col1, col2 = st.columns(2)
@@ -79,7 +81,7 @@ with col1:
         plot_metrics(sequence_metrics)
     with tab2:
         plot_metrics(structure_metrics)
-    with tab2:
+    with tab3:
         plot_metrics(system_metrics)
 
 
@@ -93,7 +95,18 @@ def structures_display():
             step_number = int(step_name[4:])
             file_paths.append((step_number, file_name))
     file_paths = sorted(file_paths)
+
+
+    start_time, end_time = st.slider(
+        'Filter Structures',
+        max_value=file_paths[-1][0],
+        min_value=file_paths[0][0],
+        value=(file_paths[0][0], file_paths[-1][0]),
+        step=file_paths[1][0] - file_paths[0][0] if (len(file_paths) > 1) else 1
+    )
+
     for step, file_name in file_paths:
+        if not (start_time <= step <= end_time): continue
         sse_img_path = str((Path(structures_dir) / (file_name[:-4] + '.png')))
 
         view = py3Dmol.view()

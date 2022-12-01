@@ -47,4 +47,13 @@ Then, inside remote, access the directory where the experiment was saved (`run.r
 $ aim up -h 127.0.0.1 -p 16006
 ```
 
+### App
+
+Access the matlaber as above (specifying ports and forwarding). Then run the app with:
+
+```
+streamlit run app.py --server.port 16006
+```
+
+
 Access the [Aim UI](https://aimstack.readthedocs.io/en/latest/ui/overview.html) locally through any browser at `localhost:16006`
