@@ -11,12 +11,12 @@ class VanillaSampler(Sampler):
         self.k = k
 
     def __str__(self):
-        return f"vanilla-sampler[k={self.k}]"
+        return f"vanilla-sampler_k{self.k}"
 
     def step(self, sequences):
         # data in correct ESM format
         masked_sequences = [
-            self._mask_sequence_randomly(seq, self.k) for seq in sequences
+            self._mask_sequence_randomly(seq, self.k, self.get_mask_indices(seq)) for seq in sequences
         ]
         data = [(str(i + 1), masked_sequences[i]) for i in range(len(sequences))]
         batch_labels, batch_str, batch_tokens = self.batch_converter(data)

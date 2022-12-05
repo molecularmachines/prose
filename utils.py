@@ -2,6 +2,7 @@ from typing import List, Tuple
 
 from biotite.sequence.io import fasta
 
+
 def load_fasta_file(input: str) -> List[Tuple[str]]:
     # read input fasta file
     fasta_file = fasta.FastaFile.read(input)
@@ -11,11 +12,13 @@ def load_fasta_file(input: str) -> List[Tuple[str]]:
     names = list(fasta_sequences.keys())
     return sequences, names
 
+
 def save_fasta_file(sequences, names, save_path):
-    step_fasta_file = fasta.FastaFile() 
+    step_fasta_file = fasta.FastaFile()
     for j, res_name in enumerate(names):
         step_fasta_file[res_name] = sequences[j]
     step_fasta_file.write(save_path)
+
 
 def gin_config_to_dict(gin_config: dict):
     """

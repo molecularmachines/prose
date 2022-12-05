@@ -20,6 +20,9 @@ class GibbsSampler(Sampler):
         self.start_at = start_at
         self.sampling_order = sampling_order
 
+    def __str__(self):
+        return "gibbs_{self.sampling_order}_temp{self.temp}"
+
     def untokenize_sequence(self,tokens):
       """
       Removes <cls and <eos> tokens
@@ -58,6 +61,7 @@ class GibbsSampler(Sampler):
         """
         predictions = []
         sequence = sequences[0]
+        mask_possible_indices = self.get_mask_indices(sequence)
         if not isinstance(sequence,str):
           raise Exception("Only pass one seed sequence")
 
@@ -73,7 +77,7 @@ class GibbsSampler(Sampler):
         if self.sampling_order == 'next':
           #Next token sampler - First token is a CLS token so will ignore that one
           tokens = seed_tokens.clone() #copy the seed tokens 
-          for i in range(1,tokens.shape[1]-1):
+          for i in range(mask_possible_indices):
               masked_tokens = tokens.clone()
               masked_tokens[:,i] = self.mask_token_id
               new_sequence_tokens = self.propose_new_sequence(masked_tokens,pos=i)
@@ -87,10 +91,10 @@ class GibbsSampler(Sampler):
           num_tokens = tokens.shape[1] 
           for i in range(0,self.block_size):
               masked_tokens = tokens.clone()
-              random_position = random.choice(range(0,num_tokens-1))
-              masked_tokens[:,random_position+1] = self.mask_token_id
+              random_position = random.choice(mask_possible_indices)
+              masked_tokens[:,random_position] = self.mask_token_id
               new_sequence_tokens = self.propose_new_sequence(masked_tokens,pos=random_position+1)
-              masked_tokens[:,random_position+1] = new_sequence_tokens[0]
+              masked_tokens[:,random_position] = new_sequence_tokens[0]
               tokens = masked_tokens.clone()
               predictions.append(self.untokenize_sequence(masked_tokens))
 

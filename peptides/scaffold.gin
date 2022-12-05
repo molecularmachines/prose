@@ -1,11 +1,14 @@
-run.experiment = "basic"
-run.repo = '~/expts/prose/'
+run.experiment = "peptides"
+run.repo = '~/prose/expts/peptides/'
 
-run.start_fasta = './examples/2HBB.fasta'
+run.fasta_dir = '~/prose/peptides/experiments'
 
-run.sampler_class = @MetropolisSampler
+run.sampler_class = @MetropolisHastingsSampler
 run.n_steps = 500
 run.fold_every = 20
+
+# config for Sampler
+Sampler.freeze = 'PPPRPPK'
 
 # config for Vanilla
 VanillaSampler.k = 1
@@ -29,7 +32,7 @@ GibbsSampler.start_at = 0
 GibbsSampler.temp = 1.0
 GibbsSampler.sampling_order = 'random'
 
-# config for Metropolis
+# config for Gibbs
 MetropolisSampler.block_size = 5
 MetropolisSampler.start_at = 0
 MetropolisSampler.temp = 1.0

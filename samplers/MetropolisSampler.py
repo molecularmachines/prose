@@ -18,6 +18,9 @@ class MetropolisSampler(Sampler):
         self.start_at = start_at
         self.sampling_order = sampling_order
         
+    def __str__(self):
+        return "Metropolis"
+
     def compute_sequence_energy(self,tokens):
         sequence_energy = 0
         sequence_length_with_end_tokens = len(tokens[0])-1
@@ -94,7 +97,8 @@ class MetropolisSampler(Sampler):
           #Next token sampler - First token is a CLS token so will ignore that one
           tokens = seed_tokens.clone() #copy the seed tokens
           num_tokens = tokens.shape[1] 
-          for i in range(0,num_tokens-1):
+          mask_indices = self.get_mask_indices(sequence)
+          for i in mask_indices:
             masked_tokens = tokens.clone()
             e_o = self.compute_sequence_energy(masked_tokens)
             masked_tokens[:,i+1] = self.mask_token_id
@@ -106,7 +110,6 @@ class MetropolisSampler(Sampler):
             tokens = masked_tokens.clone()
             predictions.append(self.untokenize_sequence(masked_tokens))
 
-        print(predictions)
         return predictions, {}
 
 
