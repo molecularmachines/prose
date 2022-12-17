@@ -1,4 +1,4 @@
-# ProSE
+# ProSE: Speaking the Language of Proteins
 **Pro**tein **S**equence **E**volver
 
 ## Install
